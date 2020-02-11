@@ -56,13 +56,25 @@ void printString(char *string) {
 }
 
 int div(int a, int b) {
-  return a / b;
+  int l = 0, r = a, ret = 0;
+  while (l <= r) {
+    int mid = (l + r) >> 1;
+    if (a >= mid * b) {
+      l = mid + 1;
+      ret = mid;
+    } else {
+      r = mid - 1;
+    }
+  }
+  return ret;
 }
 
 int mod(int a, int b) {
-  return a % b;
+  return a - b * div(a, b);
 }
 
 void readSector(char *buffer, int sector) {
   interrupt(0x13, 0x201, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
+
+void readFile(char *filename)
