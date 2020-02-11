@@ -42,3 +42,17 @@ void handleInterrupt21 (int AX, int BX, int CX, int DX){
   }
 }
 
+void printString(char *string){
+  int counter = 0;
+  while(*(string+counter) != '\0'){
+    char ah = *(string + counter);
+    char al = 0xe;
+    char AX = al * 256 + ah;
+    interrupt(0x10, AX, 0, 0, 0);
+    counter++;
+  }
+}
+
+void readSector(){
+  interrupt(0x13, 0x201, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
+}
