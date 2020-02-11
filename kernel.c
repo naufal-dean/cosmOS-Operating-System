@@ -2,6 +2,8 @@
 void handleInterrupt21 (int AX, int BX, int CX, int DX);
 void printString(char *string);
 void readString(char *string);
+int div(int a, int b);
+int mod(int a, int b);
 void readSector(char *buffer, int sector);
 void writeSector(char *buffer, int sector);
 void readFile(char *buffer, char *filename, int *success);
@@ -42,9 +44,9 @@ void handleInterrupt21 (int AX, int BX, int CX, int DX){
   }
 }
 
-void printString(char *string){
+void printString(char *string) {
   int counter = 0;
-  while(*(string+counter) != '\0'){
+  while (*(string + counter) != '\0') {
     char ah = *(string + counter);
     char al = 0xe;
     char AX = al * 256 + ah;
@@ -53,6 +55,14 @@ void printString(char *string){
   }
 }
 
-void readSector(){
+int div(int a, int b) {
+  return a / b;
+}
+
+int mod(int a, int b) {
+  return a % b;
+}
+
+void readSector(char *buffer, int sector) {
   interrupt(0x13, 0x201, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
