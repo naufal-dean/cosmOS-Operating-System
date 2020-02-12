@@ -1,2 +1,2 @@
 ./compile.sh
-bochs -f if2230.config
+echo c | bochs -f if2230.config
