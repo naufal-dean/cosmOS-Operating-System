@@ -10,16 +10,25 @@ void readFile(char *buffer, char *filename, int *success);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *filename, int *sectors);
 void executeProgram(char *filename, int segment, int *success);
+// for debugging
+void printSectorString(char *string);
+
 
 int main() {
-  char buffer[20];
-  while (1) {
-    printString("Input: ");
-    readString(buffer);
-    printString("Output: ");
-    printString(buffer);
-    printString("\r\n");
-  }
+  char buffer[512];
+  int sectors[20];
+  printString("start\r\n");
+  writeFile("Inside file", "1stFile", sectors);
+  printString("fin\r\n");
+  readSector(buffer, 2);
+  printSectorString(buffer);
+  // while (1) {
+  //   printString("Input: ");
+  //   readString(buffer);
+  //   printString("Output: ");
+  //   printString(buffer);
+  //   printString("\r\n");
+  // }
   makeInterrupt21();
   while (1);
 }
@@ -55,6 +64,18 @@ void handleInterrupt21 (int AX, int BX, int CX, int DX){
 void printString(char *string) {
   int counter = 0;
   while (*(string + counter) != '\0') {
+    char ah = *(string + counter);
+    char al = 0xe;
+    int AX = al * 256 + ah;
+    interrupt(0x10, AX, 0, 0, 0);
+    counter++;
+  }
+}
+
+// for debugging
+void printSectorString(char *string) {
+  int counter = 0;
+  while (counter < 512) {
     char ah = *(string + counter);
     char al = 0xe;
     int AX = al * 256 + ah;
@@ -125,7 +146,7 @@ void writeSector(char *buffer, int sector) {
 }
 
 void readFile(char *buffer, char *filename, int *success) {
-
+  
 }
 
 void clear(char *buffer, int length) {
@@ -136,7 +157,71 @@ void clear(char *buffer, int length) {
 } //Fungsi untuk mengisi buffer dengan 0
 
 void writeFile(char *buffer, char *filename, int *sectors) {
+  char map[512], dir[512];
+  char tempBuffer[512];
+  int i, j;
+  int dirLineSize = 32, dirLineCount = 16, emptyDirLine = -1, emptyDirLineAdr;
+  int freeSectorMap = 0;
+  int sectorNeeded = 0, writeSectorAdr;
+  
+  // get map and dir sector
+  readSector(map, 1);
+  readSector(dir, 2);
 
+  // search for empty dir
+  i = 0;
+  while (i < dirLineCount) {
+    if (dir[i * dirLineSize] == 0x0) {
+      emptyDirLine = i;
+      break;
+    }
+    i++;
+  }
+  if (emptyDirLine == -1) // not found
+    return;
+  
+  // get buffer size
+  i = 0;
+  while (buffer[i] != 0x0) {
+    i++;
+  }
+  sectorNeeded = div(i, 512);
+  if (mod(i, 512) != 0)
+    sectorNeeded++;
+  // get free sector in map
+  while ((map[freeSectorMap] != 0x0) && (freeSectorMap < 256))
+    freeSectorMap++;
+  if (256 - freeSectorMap < sectorNeeded) // not enough space
+    return;
+  if (sectorNeeded > 20) // file size too big
+    return;
+
+  // clean name field in dir
+  emptyDirLineAdr = dir + (emptyDirLine * dirLineSize);
+  clear(emptyDirLineAdr, dirLineSize);
+  // save file name in dir
+  i = 0;
+  while ((filename[i] != 0x0) && (i < 12)) {
+    dir[(emptyDirLine * dirLineSize) + i] = filename[i];
+    i++;
+  }
+
+  // write buffer to all sector needed
+  for (i = 0; i < sectorNeeded; ++i) {
+    writeSectorAdr = (freeSectorMap + i) * 512;
+    clear(writeSectorAdr, 512);
+    // write per byte to sector
+    j = 0;
+    while ((j < 512) && (buffer[j] != 0x0)) {
+      tempBuffer[j] = buffer[(i * 512) + j];
+      j++;
+      writeSector(tempBuffer, (freeSectorMap + i));
+    }
+    // write sector position to map, dir, and sectors
+    map[freeSectorMap + i] = 0xff;
+    dir[(emptyDirLine * dirLineSize) + 12 + i] = freeSectorMap + i;
+    sectors[i] = freeSectorMap + i;
+  }
 }
 
 void executeProgram(char *filename, int segment, int *success) {
