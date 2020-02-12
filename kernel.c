@@ -222,6 +222,10 @@ void writeFile(char *buffer, char *filename, int *sectors) {
     dir[(emptyDirLine * dirLineSize) + 12 + i] = freeSectorMap + i;
     sectors[i] = freeSectorMap + i;
   }
+
+  // finalize changes
+  writeSector(map, 1);
+  writeSector(dir, 2);
 }
 
 void executeProgram(char *filename, int segment, int *success) {
