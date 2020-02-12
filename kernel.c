@@ -57,7 +57,22 @@ void printString(char *string) {
 }
 
 void readString(char *string) {
+  while(1){
+    int cKarakter = interrupt(0x16, 0, 0, 0, 0);
+    int count = 2;
+    *(string) = 0xd;
+    *(string+1) = 0xa;
 
+    //bila enter 
+    if(cKarakter == '\n'){
+      *(string+count) = 0x0;
+      *(string+count+1) = 0xd;
+      *(string+count+2) = 0xa;
+    } else {
+      *(string+count) = cKarakter;
+      interrupt(0x10, 0xe*256+cKarakter, 0, 0, 0);
+      count++;
+    }
 }
 
 int div(int a, int b) {
