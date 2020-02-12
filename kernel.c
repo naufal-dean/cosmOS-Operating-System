@@ -12,8 +12,8 @@ void writeFile(char *buffer, char *filename, int *sectors);
 void executeProgram(char *filename, int segment, int *success);
 
 int main() {
-  printString("Test");
-  // makeInterrupt21();
+  // printString("Test");
+  makeInterrupt21();
   while (1);
 }
 
