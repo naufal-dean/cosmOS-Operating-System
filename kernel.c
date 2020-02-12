@@ -12,6 +12,7 @@ void writeFile(char *buffer, char *filename, int *sectors);
 void executeProgram(char *filename, int segment, int *success);
 
 int main() {
+  // printString("Test");
   makeInterrupt21();
   while (1);
 }
@@ -49,10 +50,14 @@ void printString(char *string) {
   while (*(string + counter) != '\0') {
     char ah = *(string + counter);
     char al = 0xe;
-    char AX = al * 256 + ah;
+    int AX = al * 256 + ah;
     interrupt(0x10, AX, 0, 0, 0);
     counter++;
   }
+}
+
+void readString(char *string) {
+
 }
 
 int div(int a, int b) {
@@ -77,4 +82,22 @@ void readSector(char *buffer, int sector) {
   interrupt(0x13, 0x201, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
 
-void readFile(char *filename)
+void writeSector(char *buffer, int sector) {
+  interrupt(0x03, 0x301, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
+}
+
+void readFile(char *filename) {
+
+}
+
+void clear(char *buffer, int length) {
+
+} //Fungsi untuk mengisi buffer dengan 0
+
+void writeFile(char *buffer, char *filename, int *sectors) {
+
+}
+
+void executeProgram(char *filename, int segment, int *success) {
+
+}
