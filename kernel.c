@@ -17,16 +17,14 @@ int main() {
   int * sectors;
   int * success;
   (*sectors) = 1;
+
   makeInterrupt21();
+  printLogo();
 
-  // printLogo() for logo print cosmOS
-
-  // executeProgram("milestone1", 0x2000, success);
-
+  executeProgram("milestone1", 0x2000, success);
 
   // readFile(buffer, "milestone1", success);
   // printString(buffer);
-
 
   // printString("\r\nstart\r\n");
   // writeFile("Test file", "heheFile", sectors);
@@ -259,7 +257,7 @@ void writeFile(char *buffer, char *filename, int *sectors) {
 
 void executeProgram(char *filename, int segment, int *success) {
   int maximum_size = 20 * 512;
-  char buffer[maximum_size];
+  char buffer[20 * 512];
   int i;
 
   readFile(buffer, filename, success);
@@ -277,24 +275,28 @@ void executeProgram(char *filename, int segment, int *success) {
 }
 
 void printLogo(){
-  printString("                                         _.oo.\r\n");
-  printString("                 _.u[[/;:,.         .odMMMMMM'\r\n");
-  printString("              .o888UU[[[/;:-.  .o@P^    MMM^\r\n");
-  printString("             oN88888UU[[[/;::-.        dP^\r\n");
-  printString("            dNMMNN888UU[[[/;:--.   .o@P^\r\n");
-  printString("           ,MMMMMMN888UU[[/;::-. o@^\r\n");
-  printString("           NNMMMNN888UU[[[/~.o@P^\r\n");
-  printString("           888888888UU[[[/o@^-..\r\n");
-  printString("          oI8888UU[[[/o@P^:--..\r\n");
-  printString("       .@^  YUU[[[/o@^;::---..\r\n");
-  printString("     oMP     ^/o@P^;:::---..\r\n");
-  printString("  .dMMM    .o@^ ^;::---...\r\n");
-  printString(" dMMMMMMM@^`       `^^^^\r\n");
-  printString("YMMMUP^\r\n");
-  printString(" ^^\r\n");
-  printString("                                 ____  _____\r\n");
-  printString("      _________  _________ ___  / __ |/ ___/\r\n");
-  printString("     / ___/ __ |/ ___/ __ `__ |/ / / /|__ | \r\n");
-  printString("    / /__/ /_/ (__  ) / / / / / /_/ /___/ / \r\n");
-  printString("    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
+  printString("\r\n\r\n");
+  printString("                                                         _.oo.\r\n");
+  printString("                                 _.u[[/;:,.         .odMMMMMM'\r\n");
+  printString("                              .o888UU[[[/;:-.  .o@P^    MMM^\r\n");
+  printString("                             oN88888UU[[[/;::-.        dP^\r\n");
+  printString("                            dNMMNN888UU[[[/;:--.   .o@P^\r\n");
+  printString("                           ,MMMMMMN888UU[[/;::-. o@^\r\n");
+  printString("                           NNMMMNN888UU[[[/~.o@P^\r\n");
+  printString("                           888888888UU[[[/o@^-..\r\n");
+  printString("                          oI8888UU[[[/o@P^:--..\r\n");
+  printString("                       .@^  YUU[[[/o@^;::---..\r\n");
+  printString("                     oMP     ^/o@P^;:::---..\r\n");
+  printString("                  .dMMM    .o@^ ^;::---...\r\n");
+  printString("                 dMMMMMMM@^`       `^^^^\r\n");
+  printString("                YMMMUP^\r\n");
+  printString("                 ^^\r\n");
+  printString("                                                 ____  _____\r\n");
+  printString("                      _________  _________ ___  / __ |/ ___/\r\n");
+  printString("                     / ___/ __ |/ ___/ __ `__ |/ / / /|__ | \r\n");
+  printString("                    / /__/ /_/ (__  ) / / / / / /_/ /___/ / \r\n");
+  printString("                    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
+  printString("\r\n\r\n");
+  interrupt(0x15, 0x8600, 0x8480, 0x1e);
+  interrupt(0x10, 0x7, 0, 0);
 }
