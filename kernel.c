@@ -15,20 +15,26 @@ void printSectorString(char *string);
 
 
 int main() {
-  char buffer[512];
+  char buffer[2000];
   int * sectors;
-  (*sectors) = 2;
+  int * success;
+  (*sectors) = 4;
 
-  readSector(buffer, 1);  
-  printSectorString(buffer);
-  clear(buffer, 512);
-  printString("\r\nstart\r\n");
-  writeFile("Curabitur eu pellentesque ante. Donec cursus, sapien sit amet euismod varius, sapien ex tempus libero, non molestie mi lacus eu diam. Curabitur ornare sit amet nisl fermentum dapibus. Nam luctus enim ut interdum tristique. Pellentesque ac mi et est mattis mollis. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed rhoncus lectus felis, sit amet rutrum erat scelerisque ut. Sed egestas in justo ac rutrum. Mauris vel lacinia velit, accumsan sollicitudin mi. Integer interdum massa vel commodo auctor. Proin auctor ac lacus vel dignissim. Vivamus ac purus elementum, facilisis quam at, finibus tellus. ", "1stFile", sectors);
-  printString("fin\r\n");
+  // readSector(buffer, 1);  
+  // printSectorString(buffer);
+  // clear(buffer, 512);
+  // printString("\r\nstart\r\n");
+  // writeFile("Eget mauris pharetra et ultrices neque ornare aenean. Tempor commodo ullamcorper a lacus vestibulum sed arcu non odio. Leo integer malesuada nunc vel risus. Pellentesque elit eget gravida cum sociis natoque penatibus. Ipsum a arcu cursus vitae congue mauris rhoncus. Viverra maecenas accumsan lacus vel. Augue ut lectus arcu bibendum at. Ac felis donec et odio pellentesque diam volutpat commodo sed. Metus dictum at tempor commodo ullamcorper a lacus vestibulum sed. Phasellus vestibulum lorem sed risus ultricies tristique. Ultricies mi eget mauris pharetra et ultrices neque. Eu facilisis sed odio morbi quis commodo odio. Laoreet sit amet cursus sit. Pellentesque habitant morbi tristique senectus et netus et malesuada. Odio facilisis mauris sit amet massa. Purus in mollis nunc sed id semper. Cursus vitae congue mauris rhoncus aenean vel. Erat nam at lectus urna duis convallis convallis tellus. Posuere sollicitudin aliquam ultrices sagittis orci a scelerisque. Ridiculus mus mauris vitae ultricies leo integer malesuada.", "1stFile", sectors);
+  // printString("fin\r\n");
+
+  readFile(buffer, "1stFile", success);
+  printString(buffer);
+
+
   // printString("Sector: ");
   // interrupt(0x10, 0xe*256+sectors[0]+48, 0, 0, 0);
-  readSector(buffer, 1);  
-  printSectorString(buffer);
+  // readSector(buffer, 1);
+  // printSectorString(buffer);
   // clear(buffer, 512);
   // printString("\r\n");
 
@@ -159,7 +165,43 @@ void writeSector(char *buffer, int sector) {
 }
 
 void readFile(char *buffer, char *filename, int *success) {
-  
+  char dir[512];
+  int i, found, sectorIdx;
+  char * entry;
+  // get dir sector
+  readSector(dir, 2);
+
+  // get entry
+  entry = dir;
+
+  // search filename
+  while ((*entry) != 0x0) {
+    found = 1;
+    i = 0;
+    while (entry[i] != 0x0 && i < 12) {
+      if (entry[i] != filename[i]) {
+        found = 0;
+        break;
+      }
+      i++;
+    }
+    if (found) break;
+    entry = entry + 32;
+  }
+  if (!found) { // not found
+    *success = 0;
+    return;    
+  }
+
+  // read sector
+  sectorIdx = 12;
+  i = 0;
+  while (entry[sectorIdx] != 0x0 && sectorIdx < 32) {
+    readSector(buffer + (i * 512), entry[sectorIdx]);
+    i++;
+    sectorIdx++;
+  }
+  *success = 1;
 }
 
 void clear(char *buffer, int length) {
