@@ -248,7 +248,7 @@ void writeFile(char *buffer, char *filename, int *sectors) {
 
 void executeProgram(char *filename, int segment, int *success) {
   int maximum_size = 20 * 512;
-  char buffer[20 * 512];
+  char buffer[maximum_size];
   int i;
 
   readFile(buffer, filename, success);
