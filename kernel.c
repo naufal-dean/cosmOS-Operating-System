@@ -24,7 +24,7 @@ int main() {
   // printSectorString(buffer);
   // clear(buffer, 512);
   // printString("\r\nstart\r\n");
-  // writeFile("Curabitur eu pellentesque ante. Donec cursus, sapien sit amet euismod varius, sapien ex tempus libero, non molestie mi lacus eu diam. Curabitur ornare sit amet nisl fermentum dapibus. Nam luctus enim ut interdum tristique. Pellentesque ac mi et est mattis mollis. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed rhoncus lectus felis, sit amet rutrum erat scelerisque ut. Sed egestas in justo ac rutrum. Mauris vel lacinia velit, accumsan sollicitudin mi. Integer interdum massa vel commodo auctor. Proin auctor ac lacus vel dignissim. Vivamus ac purus elementum, facilisis quam at, finibus tellus. ", "1stFile", sectors);
+  // writeFile("Inside file", "1stFile", sectors);
   // printString("fin\r\n");
 
   readFile(buffer, "1stFile", success);
@@ -179,7 +179,8 @@ void readFile(char *buffer, char *filename, int *success) {
   // search filename
   while ((*entry) != 0x0) {
     found = 1;
-    for (i = 0; i < 12; ++i) {
+    i = 0;
+    while (entry[i] != 0x0 && i < 12) {
       if (entry[i] != filename[i]) {
         found = 0;
         break;
@@ -191,18 +192,27 @@ void readFile(char *buffer, char *filename, int *success) {
   }
   if (!found) { // not found
     *success = 0;
+    printString("notfound\r\n");
     return;    
   }
+  printString("found\r\n");
 
   // read sector
   sectorIdx = 12;
   while (entry[sectorIdx] != 0x0) {
     readSector(tempBuffer, entry[sectorIdx]);
+    // interrupt(0x10, 0xe*256+mod(entry[sectorIdx],10)+48, 0, 0, 0);
+    // printString("\r\n");
+    // printString(tempBuffer);
+    // printString("\r\n");
+
     for (i = 0; i < 512; ++i) {
-      buffer[(sectorIdx * 512) + i] = tempBuffer[i];
-      printString(tempBuffer[i]);
-      // printString("\r\n");
+      buffer[((sectorIdx - 12) * 512) + i] = tempBuffer[i];
     }
+    printString("\r\n");
+    printString(buffer);
+    printString("\r\n");
+    
     sectorIdx++;
   }
   *success = 1;
