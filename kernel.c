@@ -15,21 +15,19 @@ void printSectorString(char *string);
 
 
 int main() {
-  char buffer[512];
+  char buffer[2000];
   int * sectors;
   int * success;
-  (*sectors) = 2;
+  (*sectors) = 4;
 
   // readSector(buffer, 1);  
   // printSectorString(buffer);
   // clear(buffer, 512);
   // printString("\r\nstart\r\n");
-  // writeFile("Inside file", "1stFile", sectors);
+  // writeFile("Eget mauris pharetra et ultrices neque ornare aenean. Tempor commodo ullamcorper a lacus vestibulum sed arcu non odio. Leo integer malesuada nunc vel risus. Pellentesque elit eget gravida cum sociis natoque penatibus. Ipsum a arcu cursus vitae congue mauris rhoncus. Viverra maecenas accumsan lacus vel. Augue ut lectus arcu bibendum at. Ac felis donec et odio pellentesque diam volutpat commodo sed. Metus dictum at tempor commodo ullamcorper a lacus vestibulum sed. Phasellus vestibulum lorem sed risus ultricies tristique. Ultricies mi eget mauris pharetra et ultrices neque. Eu facilisis sed odio morbi quis commodo odio. Laoreet sit amet cursus sit. Pellentesque habitant morbi tristique senectus et netus et malesuada. Odio facilisis mauris sit amet massa. Purus in mollis nunc sed id semper. Cursus vitae congue mauris rhoncus aenean vel. Erat nam at lectus urna duis convallis convallis tellus. Posuere sollicitudin aliquam ultrices sagittis orci a scelerisque. Ridiculus mus mauris vitae ultricies leo integer malesuada.", "1stFile", sectors);
   // printString("fin\r\n");
 
   readFile(buffer, "1stFile", success);
-  printString("readed\r\n");
-  interrupt(0x10, 0xe*256+(*success)+48, 0, 0, 0);
   printString(buffer);
 
 
@@ -167,7 +165,7 @@ void writeSector(char *buffer, int sector) {
 }
 
 void readFile(char *buffer, char *filename, int *success) {
-  char dir[512], tempBuffer[512];
+  char dir[512];
   int i, found, sectorIdx;
   char * entry;
   // get dir sector
@@ -192,27 +190,15 @@ void readFile(char *buffer, char *filename, int *success) {
   }
   if (!found) { // not found
     *success = 0;
-    printString("notfound\r\n");
     return;    
   }
-  printString("found\r\n");
 
   // read sector
   sectorIdx = 12;
-  while (entry[sectorIdx] != 0x0) {
-    readSector(tempBuffer, entry[sectorIdx]);
-    // interrupt(0x10, 0xe*256+mod(entry[sectorIdx],10)+48, 0, 0, 0);
-    // printString("\r\n");
-    // printString(tempBuffer);
-    // printString("\r\n");
-
-    for (i = 0; i < 512; ++i) {
-      buffer[((sectorIdx - 12) * 512) + i] = tempBuffer[i];
-    }
-    printString("\r\n");
-    printString(buffer);
-    printString("\r\n");
-    
+  i = 0;
+  while (entry[sectorIdx] != 0x0 && sectorIdx < 32) {
+    readSector(buffer + (i * 512), entry[sectorIdx]);
+    i++;
     sectorIdx++;
   }
   *success = 1;
