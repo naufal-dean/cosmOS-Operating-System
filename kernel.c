@@ -16,12 +16,25 @@ void printSectorString(char *string);
 
 int main() {
   char buffer[512];
-  int sectors[20];
-  printString("start\r\n");
-  writeFile("Inside file", "1stFile", sectors);
-  printString("fin\r\n");
-  readSector(buffer, 2);
+  int * sectors;
+  (*sectors) = 2;
+
+  readSector(buffer, 1);  
   printSectorString(buffer);
+  clear(buffer, 512);
+  printString("\r\nstart\r\n");
+  writeFile("Curabitur eu pellentesque ante. Donec cursus, sapien sit amet euismod varius, sapien ex tempus libero, non molestie mi lacus eu diam. Curabitur ornare sit amet nisl fermentum dapibus. Nam luctus enim ut interdum tristique. Pellentesque ac mi et est mattis mollis. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Sed rhoncus lectus felis, sit amet rutrum erat scelerisque ut. Sed egestas in justo ac rutrum. Mauris vel lacinia velit, accumsan sollicitudin mi. Integer interdum massa vel commodo auctor. Proin auctor ac lacus vel dignissim. Vivamus ac purus elementum, facilisis quam at, finibus tellus. ", "1stFile", sectors);
+  printString("fin\r\n");
+  // printString("Sector: ");
+  // interrupt(0x10, 0xe*256+sectors[0]+48, 0, 0, 0);
+  readSector(buffer, 1);  
+  printSectorString(buffer);
+  // clear(buffer, 512);
+  // printString("\r\n");
+
+  // readSector(buffer, 2);
+  // printSectorString(buffer);
+
   // while (1) {
   //   printString("Input: ");
   //   readString(buffer);
@@ -162,7 +175,7 @@ void writeFile(char *buffer, char *filename, int *sectors) {
   int i, j;
   int dirLineSize = 32, dirLineCount = 16, emptyDirLine = -1, emptyDirLineAdr;
   int freeSectorMap = 0;
-  int sectorNeeded = 0, writeSectorAdr;
+  int writeSectorAdr;
   
   // get map and dir sector
   readSector(map, 1);
@@ -179,22 +192,26 @@ void writeFile(char *buffer, char *filename, int *sectors) {
   }
   if (emptyDirLine == -1) // not found
     return;
-  
-  // get buffer size
-  i = 0;
-  while (buffer[i] != 0x0) {
-    i++;
-  }
-  sectorNeeded = div(i, 512);
-  if (mod(i, 512) != 0)
-    sectorNeeded++;
+  printString("emptyDirLine: ");
+  interrupt(0x10, 0xe*256+emptyDirLine+48, 0, 0, 0);
+  printString("\r\n");
+
   // get free sector in map
   while ((map[freeSectorMap] != 0x0) && (freeSectorMap < 256))
     freeSectorMap++;
-  if (256 - freeSectorMap < sectorNeeded) // not enough space
+  printString("freeSector: ");
+  interrupt(0x10, 0xe*256+div(mod(freeSectorMap,1000),100)+48, 0, 0, 0);
+  interrupt(0x10, 0xe*256+div(mod(freeSectorMap,100),10)+48, 0, 0, 0);
+  interrupt(0x10, 0xe*256+mod(freeSectorMap,10)+48, 0, 0, 0);
+  printString("\r\n");
+
+  if (256 - freeSectorMap < (*sectors)) {
+    printString("not enough");
     return;
-  if (sectorNeeded > 20) // file size too big
-    return;
+  } // not enough space
+  // if ((*sectors) > 20) // file size too big
+  //   return;
+  printString(" OK");
 
   // clean name field in dir
   emptyDirLineAdr = dir + (emptyDirLine * dirLineSize);
@@ -205,9 +222,10 @@ void writeFile(char *buffer, char *filename, int *sectors) {
     dir[(emptyDirLine * dirLineSize) + i] = filename[i];
     i++;
   }
+  printString(" OK2");
 
   // write buffer to all sector needed
-  for (i = 0; i < sectorNeeded; ++i) {
+  for (i = 0; i < (*sectors); ++i) {
     writeSectorAdr = (freeSectorMap + i) * 512;
     clear(writeSectorAdr, 512);
     // write per byte to sector
@@ -220,7 +238,7 @@ void writeFile(char *buffer, char *filename, int *sectors) {
     // write sector position to map, dir, and sectors
     map[freeSectorMap + i] = 0xff;
     dir[(emptyDirLine * dirLineSize) + 12 + i] = freeSectorMap + i;
-    sectors[i] = freeSectorMap + i;
+    printString(" OK3");  
   }
 
   // finalize changes
