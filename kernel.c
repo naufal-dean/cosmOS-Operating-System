@@ -10,7 +10,7 @@ void readFile(char *buffer, char *filename, int *success);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *filename, int *sectors);
 void executeProgram(char *filename, int segment, int *success);
-
+void printLogo();
 
 int main() {
   char buffer[2000];
@@ -18,6 +18,8 @@ int main() {
   int * success;
   (*sectors) = 1;
   makeInterrupt21();
+
+  // printLogo() for logo print cosmOS
 
   // executeProgram("milestone1", 0x2000, success);
 
@@ -35,6 +37,8 @@ int main() {
 
   while (1);
 }
+
+
 
 void handleInterrupt21 (int AX, int BX, int CX, int DX){
   switch (AX) {
@@ -270,4 +274,27 @@ void executeProgram(char *filename, int segment, int *success) {
   }
 
   launchProgram(segment);
+}
+
+void printLogo(){
+  printString("                                         _.oo.\r\n");
+  printString("                 _.u[[/;:,.         .odMMMMMM'\r\n");
+  printString("              .o888UU[[[/;:-.  .o@P^    MMM^\r\n");
+  printString("             oN88888UU[[[/;::-.        dP^\r\n");
+  printString("            dNMMNN888UU[[[/;:--.   .o@P^\r\n");
+  printString("           ,MMMMMMN888UU[[/;::-. o@^\r\n");
+  printString("           NNMMMNN888UU[[[/~.o@P^\r\n");
+  printString("           888888888UU[[[/o@^-..\r\n");
+  printString("          oI8888UU[[[/o@P^:--..\r\n");
+  printString("       .@^  YUU[[[/o@^;::---..\r\n");
+  printString("     oMP     ^/o@P^;:::---..\r\n");
+  printString("  .dMMM    .o@^ ^;::---...\r\n");
+  printString(" dMMMMMMM@^`       `^^^^\r\n");
+  printString("YMMMUP^\r\n");
+  printString(" ^^\r\n");
+  printString("                                 ____  _____\r\n");
+  printString("      _________  _________ ___  / __ |/ ___/\r\n");
+  printString("     / ___/ __ |/ ___/ __ `__ |/ / / /|__ | \r\n");
+  printString("    / /__/ /_/ (__  ) / / / / / /_/ /___/ / \r\n");
+  printString("    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
 }
