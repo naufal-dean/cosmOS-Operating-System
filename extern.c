@@ -2,29 +2,12 @@ int strToInt(char * string);
 void intToStr(int number, char * buffer);
 int div(int a, int b);
 int mod(int a, int b);
+void menu();
+void interface();
 
 int main() {
-	char buffer1[10], buffer2[10], buffer3[10];
-	int num1 = strToInt("-23");
-	int num2 = strToInt("0");
-	int num3 = strToInt("23");
-	intToStr(num1, buffer1);
-	intToStr(num2, buffer2);
-	intToStr(num3, buffer3);
-
-
-	interrupt(0x21, 0, "Welcome to the good calculator!\r\n", 0, 0);
-	// while (1) {
-
-	// }
-	interrupt(0x21, 0, buffer1, 0, 0);
-	interrupt(0x21, 0, "\r\n", 0, 0);
-	interrupt(0x21, 0, buffer2, 0, 0);
-	interrupt(0x21, 0, "\r\n", 0, 0);
-	interrupt(0x21, 0, buffer3, 0, 0);
-	interrupt(0x21, 0, "\r\n", 0, 0);
-
-	interrupt(0x21, 0, "\r\nGood bye!\r\n", 0, 0);
+  interrupt(0x21, 0, "Welcome to Cosmic Calulator!\r\n", 0, 0);
+  interface();
 	while(1);
 	return 0;
 }
@@ -90,10 +73,56 @@ int mod(int a, int b) {
   return a - b * div(a, b);
 }
 
+void menu(){
+  interrupt(0x21, 0, "Select the type of operation:\r\n", 0, 0);
+  interrupt(0x21, 0, "1. Addition\r\n", 0, 0);
+  interrupt(0x21, 0, "2. Substraction\r\n", 0, 0);
+  interrupt(0x21, 0, "3. Multiplication\r\n", 0, 0);
+  interrupt(0x21, 0, "0. EXIT\r\n", 0, 0 );
+}
 void interface(){
+  char ch[10], buf1[10], buf2[10], buf3[20];
+  int hold;
   menu();
+  interrupt(0x21, 0, "Your choice: ", 0, 0);
+  interrupt(0x21, 0x1, ch, 0, 0);
+  
+  while(strToInt(ch) != 0){
+    if(strToInt(ch) > 3 || strToInt(ch) < 0){
+      interrupt(0x21, 0, "Invalid number. Try again!\r\n");
+      interrupt(0x21, 0x1, ch, 0, 0);
+    }
+   
+    interrupt(0x21, 0, "Input the first number: ", 0, 0);
+    interrupt(0x21, 0x1, buf1, 0, 0 );
+    interrupt(0x21, 0, "Input the second number: ", 0, 0);
+    interrupt(0x21, 0x1, buf2, 0, 0);
+
+    switch(strToInt(ch)){
+      case 1:
+          interrupt(0x21, 0, "Result of addition: ", 0, 0);
+          hold = strToInt(buf1) + strToInt(buf2);
+        break;
+      case 2:
+          interrupt(0x21, 0, "Result of substraction: ", 0, 0);
+          hold = strToInt(buf1) - strToInt(buf2);
+        break;
+      case 3:
+          interrupt(0x21, 0, "Result of multiplication: ", 0, 0); 
+          hold = strToInt(buf1) * strToInt(buf2);
+        break;
+    }
+    intToStr(hold, buf3);
+    interrupt(0x21, 0, buf3, 0, 0);
+    interrupt(0x21, 0, "\r\n\r\n");
+    
+    interrupt(0x21, 0, "Is there anything you want to do?\r\n");
+    menu();
+    interrupt(0x21, 0, "Your choice: ", 0, 0);
+    interrupt(0x21, 0x1, ch, 0, 0);
+  }
+  
+  interrupt(0x21, 0, "\r\n", 0, 0);
+  interrupt(0x21, 0, "Thank you for using the Cosmic Calculator!\r\n");
 }
 
-void menu(){
-  printString("Welcome to Cosmic Calulator!\r\n");
-}

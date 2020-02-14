@@ -284,6 +284,13 @@ void executeProgram(char *filename, int segment, int *success) {
 }
 
 void printLogo(){
+  int i, j;
+  for(i = 0; i <= 50; i++){
+    for(j = 0; j<= 80; j++){
+      putInMemory(0x8000, 0x8000 + (80*j+i)*2, ' ');
+      putInMemory(0x8000, 0x8001 + (80*j+i)*2, 0xD);
+    }
+  }
   printString("\r\n\r\n");
   printString("                                                         _.oo.\r\n");
   printString("                                 _.u[[/;:,.         .odMMMMMM'\r\n");
@@ -307,7 +314,7 @@ void printLogo(){
   printString("                    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
   printString("\r\n\r\n");
   interrupt(0x15, 0x8600, 0x8480, 0x1e);
-  interrupt(0x10, 0x7, 0, 0);
+  interrupt(0x10, 0x2, 0, 0, 0);  
 }
 
 void printMenu(){
