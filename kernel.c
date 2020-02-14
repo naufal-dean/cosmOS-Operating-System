@@ -11,6 +11,9 @@ void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *filename, int *sectors);
 void executeProgram(char *filename, int segment, int *success);
 void printLogo();
+void interfaceLoop();
+void printMenu();
+
 
 int main() {
   char buffer[2000];
@@ -22,7 +25,10 @@ int main() {
   printLogo();
 
   // executeProgram("milestone1", 0x2000, success);
-  executeProgram("extern", 0x2000, success);
+  // executeProgram("extern", 0x2000, success);
+  
+  //loops interface for testing
+  interfaceLoop();
 
   // readFile(buffer, "milestone1", success);
   // printString(buffer);
@@ -36,8 +42,6 @@ int main() {
 
   while (1);
 }
-
-
 
 void handleInterrupt21 (int AX, int BX, int CX, int DX){
   switch (AX) {
@@ -96,6 +100,8 @@ void readString(char *string) {
       interrupt(0x10, 0xe*256+cr, 0, 0, 0);
       interrupt(0x10, 0xe*256+lf, 0, 0, 0);
       return;
+
+    //suport backspacing
     } else if (cKarakter == backspace) {
       if (count > 0) {
         string[count] = null;
@@ -302,4 +308,44 @@ void printLogo(){
   printString("\r\n\r\n");
   interrupt(0x15, 0x8600, 0x8480, 0x1e);
   interrupt(0x10, 0x7, 0, 0);
+}
+
+void printMenu(){
+  printString("Masukkan nomor dari service yang ingin digunakan:\r\n");
+  printString("1. Read string, print ke layar\r\n");
+  printString("2. Input file\r\n");
+  printString("3. Read file\r\n");
+  printString("4. Execute program\r\n\r\n");
+}
+
+int strToInt(char * string) {
+	int val = 0, i = 0, neg;
+
+	neg = string[0] == '-';
+	if (neg) i++;
+	while (string[i] != 0x0) {
+		val = val * 10 + (string[i] - 48);
+		i++;
+	}
+	if (neg) val *= -1;
+	return val;
+}
+
+void interfaceLoop(){
+  char buffer[999], choice[999];
+  printMenu();
+  readString(choice);
+
+  //loops while choice is not zero
+  while(strToInt(choice) != 0){
+    switch(strToInt(choice)){
+      case 1:
+        readString(buffer);
+        printString(buffer);
+        readString(choice);
+      default:
+        printString("Not supported yet!\r\n");
+    }
+  }
+  printString("Thank you for using cosmOS\r\n");
 }
