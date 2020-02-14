@@ -334,6 +334,7 @@ int strToInt(char * string) {
 
 void interfaceLoop(){
   char buffer[20 * 512], buffer2[20 * 512], choice[20 * 512];
+  int buffLen;
   int * sectors;
   int * success;
 
@@ -343,6 +344,8 @@ void interfaceLoop(){
 
   //loops while choice is not zero
   while(strToInt(choice) != 0){
+    clear(buffer, 20 * 512);
+    clear(buffer2, 20 * 512);
     switch(strToInt(choice)){
       case 1:
         printString("Input  : ");
@@ -356,7 +359,14 @@ void interfaceLoop(){
         readString(buffer);
         printString("Content  :\r\n");
         readString(buffer2);
-        // writeFile()
+        // get buff len and sectors needed
+        buffLen = 0;
+        while (buffer2[buffLen] != 0x0)
+          buffLen++;
+        *sectors = div(buffLen, 512);
+        if (mod(buffLen, 512) != 0) *sectors += 1;
+
+        writeFile(buffer2, buffer, sectors);
         break;
       case 3:
         printString("File to read : ");
