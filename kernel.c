@@ -21,7 +21,8 @@ int main() {
   makeInterrupt21();
   printLogo();
 
-  executeProgram("milestone1", 0x2000, success);
+  // executeProgram("milestone1", 0x2000, success);
+  executeProgram("extern", 0x2000, success);
 
   // readFile(buffer, "milestone1", success);
   // printString(buffer);
@@ -30,8 +31,8 @@ int main() {
   // writeFile("Test file", "heheFile", sectors);
   // printString("fin\r\n");
 
-  readFile(buffer, "key.txt", success);
-  printString(buffer);
+  // readFile(buffer, "key.txt", success);
+  // printString(buffer);
 
   while (1);
 }
@@ -163,7 +164,7 @@ void readFile(char *buffer, char *filename, int *success) {
     entry = entry + 32;
   }
   if (!found) { // not found
-    printString("File not found\r\n");
+    printString("File not found!\r\n");
     *success = 0;
     return;    
   }
@@ -208,7 +209,7 @@ void writeFile(char *buffer, char *filename, int *sectors) {
     i++;
   }
   if (emptyDirLine == -1) { // not found
-    printString("No empty dir\r\n");
+    printString("No empty dir!\r\n");
     return;
   }
 
@@ -217,11 +218,13 @@ void writeFile(char *buffer, char *filename, int *sectors) {
     freeSectorMap++;
 
   if (256 - freeSectorMap < (*sectors)) { // not enough space
-    printString("Not enough space\r\n");
+    printString("Not enough space!\r\n");
     return;
   } 
-  // if ((*sectors) > 20) // file size too big
-  //   return;
+  if ((*sectors) > 20) { // file size too big
+    printString("File size too big!\r\n");
+    return;
+  }
 
   // clean name field in dir
   emptyDirLineAdr = dir + (emptyDirLine * dirLineSize);
