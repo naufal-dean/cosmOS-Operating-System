@@ -16,7 +16,7 @@ void printMenu();
 
 
 int main() {
-  char buffer[2000];
+  char buffer[20 * 512];
   int * sectors;
   int * success;
   (*sectors) = 1;
@@ -34,10 +34,10 @@ int main() {
   // printString(buffer);
 
   // printString("\r\nstart\r\n");
-  // writeFile("Test file", "heheFile", sectors);
+  // writeFile("Testfile123456", "heheFile123456", sectors);
   // printString("fin\r\n");
 
-  // readFile(buffer, "key.txt", success);
+  // readFile(buffer, "heheFile1234", success);
   // printString(buffer);
 
   while (1);
@@ -315,7 +315,8 @@ void printMenu(){
   printString("1. Read string, print ke layar\r\n");
   printString("2. Input file\r\n");
   printString("3. Read file\r\n");
-  printString("4. Execute program\r\n\r\n");
+  printString("4. Execute program\r\n");
+  printString("0. Exit\r\n");
 }
 
 int strToInt(char * string) {
@@ -332,20 +333,50 @@ int strToInt(char * string) {
 }
 
 void interfaceLoop(){
-  char buffer[999], choice[999];
+  char buffer[20 * 512], buffer2[20 * 512], choice[20 * 512];
+  int * sectors;
+  int * success;
+
   printMenu();
+  printString("Menu: ");
   readString(choice);
 
   //loops while choice is not zero
   while(strToInt(choice) != 0){
     switch(strToInt(choice)){
       case 1:
+        printString("Input  : ");
         readString(buffer);
+        printString("Output : ");
         printString(buffer);
-        readString(choice);
+        printString("\r\n");
+        break;
+      case 2:
+        printString("Filename : ");
+        readString(buffer);
+        printString("Content  :\r\n");
+        readString(buffer2);
+        // writeFile()
+        break;
+      case 3:
+        printString("File to read : ");
+        readString(buffer);
+        readFile(buffer2, buffer, success);
+        if (*success) {
+          printString("Content      :\r\n");
+          printString(buffer2);
+          printString("\r\n");
+        } else {
+          printString("Read file failed...\r\n");
+        }
+        break;
       default:
         printString("Not supported yet!\r\n");
     }
+    printString("\r\n");
+    printMenu();
+    printString("Menu: ");
+    readString(choice);
   }
   printString("Thank you for using cosmOS\r\n");
 }
