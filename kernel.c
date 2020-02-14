@@ -347,38 +347,43 @@ void interfaceLoop(){
     clear(buffer, 20 * 512);
     clear(buffer2, 20 * 512);
     switch(strToInt(choice)){
-      case 1:
-        printString("Input  : ");
-        readString(buffer);
-        printString("Output : ");
-        printString(buffer);
-        printString("\r\n");
-        break;
-      case 2:
-        printString("Filename : ");
-        readString(buffer);
-        printString("Content  :\r\n");
-        readString(buffer2);
-        // get buff len and sectors needed
-        buffLen = 0;
-        while (buffer2[buffLen] != 0x0)
-          buffLen++;
-        *sectors = div(buffLen, 512);
-        if (mod(buffLen, 512) != 0) *sectors += 1;
-
-        writeFile(buffer2, buffer, sectors);
-        break;
-      case 3:
-        printString("File to read : ");
-        readString(buffer);
-        readFile(buffer2, buffer, success);
-        if (*success) {
-          printString("Content      :\r\n");
-          printString(buffer2);
+      case 1: // I/O
+          printString("Input  : ");
+          readString(buffer);
+          printString("Output : ");
+          printString(buffer);
           printString("\r\n");
-        } else {
-          printString("Read file failed...\r\n");
-        }
+        break;
+      case 2: // Input file
+          printString("Filename : ");
+          readString(buffer);
+          printString("Content  :\r\n");
+          readString(buffer2);
+          // get buff len and sectors needed
+          buffLen = 0;
+          while (buffer2[buffLen] != 0x0)
+            buffLen++;
+          *sectors = div(buffLen, 512);
+          if (mod(buffLen, 512) != 0) *sectors += 1;
+
+          writeFile(buffer2, buffer, sectors);
+        break;
+      case 3: // Read file
+          printString("File to read : ");
+          readString(buffer);
+          readFile(buffer2, buffer, success);
+          if (*success) {
+            printString("Content      :\r\n");
+            printString(buffer2);
+            printString("\r\n");
+          } else {
+            printString("Read file failed...\r\n");
+          }
+        break;
+      case 4: // Execute program
+          printString("Program to be executed : ");
+          readString(buffer);
+          executeProgram(buffer, 0x2000, success);
         break;
       default:
         printString("Not supported yet!\r\n");
