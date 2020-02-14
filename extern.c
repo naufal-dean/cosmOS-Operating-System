@@ -89,3 +89,11 @@ int div(int a, int b) {
 int mod(int a, int b) {
   return a - b * div(a, b);
 }
+
+void interface(){
+  menu();
+}
+
+void menu(){
+  printString("Welcome to Cosmic Calulator!\r\n");
+}
