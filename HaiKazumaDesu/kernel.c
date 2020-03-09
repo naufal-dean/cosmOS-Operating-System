@@ -25,7 +25,7 @@ void readSector(char *buffer, int sector);
 void writeSector(char *buffer, int sector);
 /* Read file */
 int validatePath(char * files, char * path, int * sepCount, char parentIndex, char * outFileIdx);
-void readFile(char *buffer, char *filename, int *success);
+void readFile(char *buffer, char *path, int *result, char parentIndex);
 /* Write file */
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *filename, int *sectors);
