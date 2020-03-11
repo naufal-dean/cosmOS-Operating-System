@@ -28,12 +28,12 @@ int main() {
   // executeProgram("extern", 0x2000, success);
   
   //loops interface for testing
-  interfaceLoop();
+  // interfaceLoop();
 
   // readFile(buffer, "milestone1", success);
   // printString(buffer);
 
-  // printString("\r\nstart\r\n");
+  printString("\r\nstart\r\n");
   // writeFile("Testfile123456", "heheFile123456", sectors);
   // printString("fin\r\n");
 

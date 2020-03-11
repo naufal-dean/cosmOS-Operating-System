@@ -105,6 +105,35 @@ void handleInterrupt21 (int AX, int BX, int CX, int DX) {
 }
 
 
+void intToStr(int number, char * buffer) {
+  int tempNum, i, j, neg;
+
+  if (number == 0) {
+    buffer[0] = '0';
+    buffer[1] = 0x0;
+  } else {
+        neg = number < 0;
+        if (neg) number *= -1;
+        tempNum = number;
+        
+    i = 0;
+    while (tempNum != 0) {
+            buffer[i] = mod(tempNum, 10) + 48;
+            tempNum = div(tempNum, 10);
+            i++;
+    }
+        if (neg) buffer[i++] = '-';
+        
+        // swap
+        for (j = 0; j < div(i, 2); ++j) {
+            buffer[j] ^= buffer[i-j-1];
+            buffer[i-j-1] ^= buffer[j];
+            buffer[j] ^= buffer[i-j-1];
+        }
+        buffer[i] = 0x0;
+  }
+}
+
 void printString(char *string) {
   int counter = 0;
   while (*(string + counter) != '\0') {
@@ -257,7 +286,7 @@ void clear(char *buffer, int length) {
 } //Fungsi untuk mengisi buffer dengan 0
 
 void writeFile(char *buffer, char *path, int *result, char parentIndex) {
-  char map[SECTOR_SIZE], files[2 * SECTOR_SIZE], sectors[SECTOR_SIZE];
+  char map[SECTOR_SIZE], files[2 * SECTOR_SIZE], sectors[SECTOR_SIZE], temp[100];
   int i, j, filenameOffset;
   int unusedSector, unusedFile, sectorsIdx;
   
@@ -268,6 +297,11 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   readSector(files + SECTOR_SIZE, 0x102);
   readSector(sectors, 0x103);
 
+  intToStr(sectors[0], temp);
+  printString(temp);
+  intToStr(sectors[1], temp);
+  printString(temp);
+
   //check unused sector from map
   for (i = 0; i < SECTOR_SIZE; i++) {
     if (map[i] == 0x00) {
@@ -277,6 +311,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == SECTOR_SIZE) { //NOT FOUND, keluarkan pesan error -3
     (*result) = W_SECTOR_FULL;
+    printString("ret secfull\r\n");
     return;
   }
 
@@ -293,6 +328,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == 64) { //NOT FOUND, keluarkan pesan error -2
     (*result) = W_ENTRY_FULL;
+    printString("ret etrfull\r\n");
     return;
   }
 
@@ -302,7 +338,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   // Empty Sectors
   i = 0;
   while (i < 32) {
-    if (sectors[i * 16] == '\0') {
+    if (sectors[i * 16] == 0x0) {
       break;
     }
     i++;
@@ -314,6 +350,9 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   }
 
   sectorsIdx = i;
+  intToStr(sectorsIdx, temp);
+
+  printString(temp);
 
   // Write filename
   i = 0;
@@ -335,7 +374,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   i = 0;
   while (buffer[i * SECTOR_SIZE] != '\0') {
     writeSector(buffer[i * SECTOR_SIZE], unusedSector);
-    sectors[unusedFile * 16 + i] = unusedSector;
+    sectors[sectorsIdx * 16 + i] = unusedSector;
     map[unusedSector] = 0xFF;
     unusedSector++;
     i++;
