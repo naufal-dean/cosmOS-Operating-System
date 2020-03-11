@@ -224,17 +224,61 @@ void clear(char *buffer, int length) {
   }
 } //Fungsi untuk mengisi buffer dengan 0
 
-void writeFile(char *buffer, char *filename, int *sectors) {
-  char map[512], dir[512];
+void writeFile(char *buffer, char *path, int *result, char parentIndex) {
+  char map[512], files[1024], sectors[512];
   char tempBuffer[512];
   int i, j;
+  int unusedSector, unusedFile;
   int dirLineSize = 32, dirLineCount = 16, emptyDirLine = -1, emptyDirLineAdr;
   int freeSectorMap = 0;
   int writeSectorAdr;
   
-  // get map and dir sector
-  readSector(map, 1);
-  readSector(dir, 2);
+  // get map, files, and sectors
+  readSector(map, 0x100);
+  readSector(files, 0x101);
+  readSector(files+512, 0x102);
+  readSector(sectors, 0x103);
+
+  //check unused sector from map
+  for(i = 0; i < 512; i++){
+  	if(map[i] == 0x00){
+  		break;
+  	}
+  }
+
+  if(i == 512){ //NOT FOUND, keluarkan pesan error -3
+  	(*result) = W_SECTOR_FULL;
+  	return;
+  }
+
+  unusedSector = i;
+
+  //check for empty file
+  i = 0;
+  while(i < 64){
+  	if(files[i*16] == '\0'){
+  		break;
+  	}
+  }
+
+  if(i == 64){ //NOT FOUND, keluarkan pesan error -2
+  	(*result) = W_ENTRY_FULL;
+  	return;
+  }
+
+  unusedFile = i;
+
+  writeSector(map, 0x100);
+  writeSector(files, 0x101);
+  writeSector(files+512, 0x102)
+  writeSector(sectors, 0x103);
+  *result = 1;
+
+  //
+
+
+
+
 
   // search for empty dir
   i = 0;
