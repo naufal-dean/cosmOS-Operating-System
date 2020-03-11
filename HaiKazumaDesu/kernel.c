@@ -8,6 +8,9 @@
 #define PARENT(P) (P)[0]
 #define SECTOR(P) (P)[1]
 
+#define PATH_FOLDER 1;
+#define PATH_FILE 0;
+
 #define R_SUCCESS 1
 #define R_FILE_NOT_FOUND -1
 #define W_SUCCESS 1
@@ -155,13 +158,20 @@ void writeSector(char *buffer, int sector) {
   interrupt(0x13, 0x301, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
 
-int validatePath(char * files, char * path, int * sepCount, char parentIndex, char * outFileIdx) {
+int validatePath(char * files, char * path, int * sepCount, char parentIndex, char * outFileIdx, int isFolder) {
   int filesIdx = 0, i;
   if (*sepCount == 0) { // base
     do {
-      if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) != 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == parentIndex && stringCmp(files + filesIdx * FILES_LINE_SIZE, path)) {
-        *outFileIdx = filesIdx;
-        return 1;
+      if (isFolder) {
+        if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) == 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path)) {
+          *outFileIdx = filesIdx;
+          return 1;
+        }
+      } else { // file
+        if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) != 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path)) {
+          *outFileIdx = filesIdx;
+          return 1;
+        }
       }
       filesIdx++;
     } while (filesIdx < FILE_MAX_COUNT);
@@ -175,7 +185,7 @@ int validatePath(char * files, char * path, int * sepCount, char parentIndex, ch
     // check folder name
     (*sepCount)--;
     do {
-      if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) == 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == parentIndex && stringCmp(files + filesIdx * FILES_LINE_SIZE, path))
+      if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) == 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path))
         return validatePath(files, path + i, sepCount, filesIdx, outFileIdx);
       filesIdx++;
     } while (filesIdx < FILE_MAX_COUNT);
@@ -204,7 +214,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
   }
   locPath[i] = 0x0;
   *filesIdx = 0;
-  if !(validatePath(files, locPath, sepCount, parentIndex, filesIdx)) {
+  if !(validatePath(files, locPath, sepCount, parentIndex, filesIdx, PATH_FILE)) {
     *result = R_FILE_NOT_FOUND;
     return;
   }
@@ -348,16 +358,79 @@ void printMenu(){
 }
 
 int strToInt(char * string) {
-	int val = 0, i = 0, neg;
+  int val = 0, i = 0, neg;
 
-	neg = string[0] == '-';
-	if (neg) i++;
-	while (string[i] != 0x0) {
-		val = val * 10 + (string[i] - 48);
-		i++;
-	}
-	if (neg) val *= -1;
-	return val;
+  neg = string[0] == '-';
+  if (neg) i++;
+  while (string[i] != 0x0) {
+    val = val * 10 + (string[i] - 48);
+    i++;
+  }
+  if (neg) val *= -1;
+  return val;
+}
+
+// Shell
+void execCd(char * files, char * path, char * curDir, char * parentIndex, int * success) {
+  int i = 0, filesIdx = 0;
+  // Isolate first part in path
+  while (path[i] != '/' && path[i] != 0x0)
+    i++;
+  path[i] = 0x0;
+  // Exec first path
+  if (stringCmp(path, "..")) {
+    if (*parentIndex != 0xFF)
+      (*parentIndex) = PARENT(files[(*parentIndex) * FILES_LINE_SIZE]);
+  } else {
+    do {
+      if (SECTOR(files[filesIdx * FILES_LINE_SIZE]) == 0xFF && PARENT(files[filesIdx * FILES_LINE_SIZE]) == (*parentIndex) && filenameCmp(files + filesIdx * FILES_LINE_SIZE + 2, path)) {
+        break;
+      }
+      filesIdx++;
+    } while (filesIdx < FILE_MAX_COUNT);
+    if (filesIdx == FILE_MAX_COUNT) {
+      *success = 0;
+      return;
+    } else {
+      (*parentIndex) = filesIdx;
+    }
+  }
+  // Reccurse
+  if (path[i] != 0x0) {
+    execCd(files, path + i + 1, curDir, parentIndex, success);
+  } else {
+    *success = 1;
+  }
+}
+
+void shellLoop() {
+  char command[512], curDir[2 * 512], files[SECTOR_SIZE * 2];
+  char * parentIndex, tempParIdx; parentIndex[0] = 0xFF;
+  int i;
+  int * success;
+
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+  stringCpy(curDir, "~");
+  while (1) {
+    clear(command, 512);
+    printString(curDir); printString("$ ");
+    readString(command);
+    // Execute command
+    if (stringStartsWith(command, "cd")) {
+      *tempParIdx = *parentIndex;
+      execCd(files, command + 3, curDir, tempParIdx, success);
+      if (*success) {
+        *parentIndex = *tempParIdx;
+      } else {
+        printString("No such file or directory\r\n");
+      }
+    } else if (stringStartsWith(command, "./")) {
+      executeProgram(command + 2, 0x2000, success);
+    } else {
+      printString(command); printString(": command not found\r\n");
+    }
+  }
 }
 
 void interfaceLoop(){
@@ -424,12 +497,45 @@ void interfaceLoop(){
   printString("Thank you for using cosmOS\r\n");
 }
 
-int stringCmp(char * a, char * b) {
+// Utils
+int stringCmp(char * buff1, char * buff2) {
   int i = 0;
   while (1) {
-    if (a[i] != b[i])
+    if (buff1[i] != buff2[i])
       return 0;
-    if (a[i] == 0x0)
+    if (buff1[i] == 0x0)
+      break;
+    i++;
+  }
+  return 1;
+}
+
+int stringStartsWith(char * buffFull, char * buffInit) {
+  int i = 0;
+  while (1) {
+    if (buffInit[i] == 0x0)
+      break;
+    if (buffFull[i] != buffInit[i])
+      return 0;
+    i++;
+  }
+  return 1;
+}
+
+void stringCpy(char * buffOut, char * buffIn) {
+  int i = 0;
+  do {
+    buffOut[i] = buffIn[i];
+    i++;
+  } while (buffIn[i] != 0x0);
+}
+
+int filenameCmp(char * buff1, char * buff2) {
+  int i = 0;
+  while (i < 14) {
+    if (buff1[i] != buff2[i])
+      return 0;
+    if (buff1[i] == 0x0)
       break;
     i++;
   }
