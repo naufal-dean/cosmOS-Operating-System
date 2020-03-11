@@ -4,6 +4,7 @@
 #define SECTOR_LINE_SIZE 16
 #define FILE_NAME_OFFSET 2
 #define FILE_MAX_COUNT 64
+#define DIR_LINE_SIZE 32
 #define PARENT(P) (P)[0]
 #define SECTOR(P) (P)[1]
 
@@ -225,28 +226,24 @@ void clear(char *buffer, int length) {
 } //Fungsi untuk mengisi buffer dengan 0
 
 void writeFile(char *buffer, char *path, int *result, char parentIndex) {
-  char map[512], files[1024], sectors[512];
-  char tempBuffer[512];
+  char map[SECTOR_SIZE], files[2 * SECTOR_SIZE], sectors[SECTOR_SIZE];
   int i, j;
   int unusedSector, unusedFile;
-  int dirLineSize = 32, dirLineCount = 16, emptyDirLine = -1, emptyDirLineAdr;
-  int freeSectorMap = 0;
-  int writeSectorAdr;
   
   // get map, files, and sectors
   readSector(map, 0x100);
   readSector(files, 0x101);
-  readSector(files+512, 0x102);
+  readSector(files + SECTOR_SIZE, 0x102);
   readSector(sectors, 0x103);
 
   //check unused sector from map
-  for(i = 0; i < 512; i++){
-  	if(map[i] == 0x00){
+  for (i = 0; i < SECTOR_SIZE; i++) {
+  	if (map[i] == 0x00) {
   		break;
   	}
   }
 
-  if(i == 512){ //NOT FOUND, keluarkan pesan error -3
+  if (i == SECTOR_SIZE) { //NOT FOUND, keluarkan pesan error -3
   	(*result) = W_SECTOR_FULL;
   	return;
   }
@@ -255,88 +252,37 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   //check for empty file
   i = 0;
-  while(i < 64){
-  	if(files[i*16] == '\0'){
+  while (i < 64) {
+  	if (files[i * 16] == '\0') {
   		break;
   	}
+  	i++;
   }
 
-  if(i == 64){ //NOT FOUND, keluarkan pesan error -2
+  if (i == 64) { //NOT FOUND, keluarkan pesan error -2
   	(*result) = W_ENTRY_FULL;
   	return;
   }
 
   unusedFile = i;
 
+
+  i = 0;
+  while (buffer[i * SECTOR_SIZE] != '\0') {
+  	writeSector(buffer + i * SECTOR_SIZE, unusedSector);
+  	sectors[unusedFile * 16 + i] = unusedSector;
+  	map[unusedSector] = 0xFF;
+  	i++;
+  }
+
   writeSector(map, 0x100);
   writeSector(files, 0x101);
-  writeSector(files+512, 0x102)
+  writeSector(files + SECTOR_SIZE, 0x102)
   writeSector(sectors, 0x103);
   *result = 1;
 
   //
 
-
-
-
-
-  // search for empty dir
-  i = 0;
-  while (i < dirLineCount) {
-    if (dir[i * dirLineSize] == 0x0) {
-      emptyDirLine = i;
-      break;
-    }
-    i++;
-  }
-  if (emptyDirLine == -1) { // not found
-    printString("No empty dir!\r\n");
-    return;
-  }
-
-  // get free sector in map
-  while ((map[freeSectorMap] != 0x0) && (freeSectorMap < 256))
-    freeSectorMap++;
-
-  if (256 - freeSectorMap < (*sectors)) { // not enough space
-    printString("Not enough space!\r\n");
-    return;
-  } 
-  if ((*sectors) > 20) { // file size too big
-    printString("File size too big!\r\n");
-    return;
-  }
-
-  // clean name field in dir
-  emptyDirLineAdr = dir + (emptyDirLine * dirLineSize);
-  clear(emptyDirLineAdr, dirLineSize);
-  // save file name in dir
-  i = 0;
-  while ((filename[i] != 0x0) && (i < 12)) {
-    dir[(emptyDirLine * dirLineSize) + i] = filename[i];
-    i++;
-  }
-
-  // write buffer to all sector needed
-  for (i = 0; i < (*sectors); ++i) {
-    writeSectorAdr = (freeSectorMap + i) * 512;
-    clear(writeSectorAdr, 512);
-    clear(tempBuffer, 512);
-    // write per byte to sector
-    j = 0;
-    while ((j < 512) && (buffer[j] != 0x0)) {
-      tempBuffer[j] = buffer[(i * 512) + j];
-      j++;
-      writeSector(tempBuffer, (freeSectorMap + i));
-    }
-    // write sector position to map, dir, and sectors
-    map[freeSectorMap + i] = 0xff;
-    dir[(emptyDirLine * dirLineSize) + 12 + i] = freeSectorMap + i;
-  }
-
-  // finalize changes
-  writeSector(map, 1);
-  writeSector(dir, 2);
 }
 
 void executeProgram(char *filename, int segment, int *success) {
