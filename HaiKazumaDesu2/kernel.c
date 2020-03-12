@@ -360,7 +360,9 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
     if (path[i] == '/') filenameOffset = i + 1;
     i++;
   }
+  parentSep = i;
   i = 0;
+
   while (path[filenameOffset + i] != 0x0) {
     files[unusedFile * FILES_LINE_SIZE + 2 + i] = path[filenameOffset + i];
     i++;
@@ -368,7 +370,8 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   // Write P and S
   SECTOR(files + unusedFile * FILES_LINE_SIZE) = sectorsIdx;
-  PARENT(files + unusedFile * FILES_LINE_SIZE) = 0xFF;
+
+  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
 
 
   i = 0;
