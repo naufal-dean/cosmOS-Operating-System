@@ -16,8 +16,8 @@
 #define W_SECTOR_FULL -3
 #define W_INVALID_FOLDER -4
 
-int PATH_FOLDER = 1;
-int PATH_FILE = 0;
+int IS_FOLDER = 1;
+int IS_FILE = 0;
 int FILES_LINE_SIZE = 16;
 
 
@@ -33,6 +33,7 @@ int writeFolder(char * folderName, int *result, char parentIndex);
 void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
+int writeFolder(char * folderName, int *result, char parentIndex); // return filesIdx used
 void executeProgram(char *filename, int segment, int *success);
 void printLogo();
 void interfaceLoop();
@@ -43,23 +44,32 @@ int stringStartsWith(char * buffFull, char * buffInit);
 int filenameCmp(char * buff1, char * buff2);
 int stringCmp(char * a, char * b);
 
-
+int cdExec(char * path, char * curDir, char * parentIndex);
+void shellLoop();
 
 
 int main() {
   char buffer[20 * 512];
   int * sectors;
   int * success;
+  int idx;
   (*sectors) = 1;
 
   makeInterrupt21();
   printLogo();
 
+  printString("Populating files\r\n");
+  idx = writeFolder("Folder1", success, 0xFF);
+  idx = writeFolder("Folder2", success, idx);
+  writeFile("Inside file 1", "File1", success, idx);
+  printString("Populating files done\r\n");
+
   // executeProgram("milestone1", 0x2000, success);
   // executeProgram("extern", 0x2000, success);
   
   //loops interface for testing
-  interfaceLoop();
+  // interfaceLoop();
+  shellLoop();
 
   // readFile(buffer, "milestone1", success);
   // printString(buffer);
@@ -236,21 +246,9 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
     } else // path[i] == 0x0
       isFolder = 0;
     // check files
-    filesIdx = 0;
-    do {
-      if (PARENT(files + filesIdx * FILES_LINE_SIZE) == locParIndex) {
-        if (isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) == 0xFF) {
-          if (filenameCmp(partPath, files + filesIdx * FILES_LINE_SIZE + 2))
-            break;
-        } else if (!isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) != 0xFF) {
-          if (filenameCmp(partPath, files + filesIdx * FILES_LINE_SIZE + 2))
-            break;
-        }
-      }
-      filesIdx++;
-    } while (filesIdx < FILE_MAX_COUNT);
+    filesIdx = findFilename(partPath, locParIndex, isFolder);
     // check if not found
-    if (filesIdx == FILE_MAX_COUNT) {
+    if (filesIdx == -1) {
       printString("File not found\r\n");
       (*result) = R_FILE_NOT_FOUND;
       return;
@@ -588,35 +586,109 @@ void interfaceLoop(){
   printString("Thank you for using cosmOS\r\n");
 }
 
-char* filenameFromIdx(int idx){
-	int i;
-	char buffer[14]; char files[1024];
+int cdExec(char * path, char * curDir, char * parentIndex) {
+  char files[SECTOR_SIZE * 2];
+  int i, j, k, lastSlashIdx, filesIdx, end;
+  char temp[100];
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
 
-	readSector(files, 0x101);
-	readSector(files + SECTOR_SIZE, 0x102);
+  // isolate first part of path
+  i = 0;
+  while(path[i] != 0x0 && path[i] != '/')
+    i++;
+  end = path[i] == 0x0;
+  path[i] = 0x0;
+  // execute cd partPath
+  if (stringCmp(path, "..")) {
+    if (*parentIndex != 0xFF) {
+      // update parentIndex
+      *parentIndex = PARENT(files + (*parentIndex) * FILES_LINE_SIZE);
+      // update curDir
+      j = 0;
+      while (curDir[j] != 0x0) {
+        if (curDir[j] == '/') lastSlashIdx = j;
+        j++;
+      }
+      curDir[lastSlashIdx] = 0x0;
+    }
+  } else if (stringCmp(path, "~")) {
+    // update parentIndex
+    *parentIndex = 0xFF;
+    // update curDir
+    stringCpy(curDir, "~");
+  } else {
+    filesIdx = findFilename(path, *parentIndex, IS_FOLDER);
+    if (filesIdx != -1) { // found
+      // update parentIndex
+      *parentIndex = filesIdx;
+      // update curDir
+      j = 0;
+      while (curDir[j] != 0x0) j++;
+      curDir[j] = '/'; j++;
+      // copy new path
+      k = 0;
+      while (path[k] != 0x0) {
+        curDir[j] = path[k];
+        j++; k++;
+      }
+      curDir[j] = 0x0;
+    } else {
+      return 0;
+    }
+  }
 
-	i = 2;
-	while(files + (idx * FILES_LINE_SIZE + i) != "\0" && i < 16){
-		buffer[i-2] = files[idx * FILES_LINE_SIZE + i];
-		i++;
-	}
-
-	return buffer;
+  // reccursive
+  if (end) {
+    return 1;
+  } else {
+    cdExec(path + i + 1, curDir, parentIndex);
+  }
 }
 
-int isFolderExist(char* name, int * fileIdx){
-	int i; char files[1024];
-
-	readSector(files, 0x101);
-	readSector(files + SECTOR_SIZE, 0x102);
-
-	for(i = 0; i < 32; i++){
-		if(SECTOR(files + i * FILES_LINE_SIZE) == 0xFF && stringCmp(name, filenameFromIdx(i)) == 1){
-			fileIdx = i;
-			return 1;
-		}
-	}
-	return 0;
+void shellLoop() {
+  char command[512], curDir[2 * 512], files[SECTOR_SIZE * 2];
+  char * tempParIdx;
+  int i, parentIndex, result;
+  char temp[100];
+  // read sector
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+  // init
+  stringCpy(curDir, "~");
+  parentIndex = 0xFF;
+  while (1) {
+    clear(command, 512);
+    intToStr(parentIndex, temp);
+    printString(temp); printString("\r\n");
+    printString(curDir); printString("$ ");
+    readString(command);
+    // Execute command
+    if (stringStartsWith(command, "cd")) {
+      i = 2;
+      while (command[i] == ' ' && command[i] != 0x0)
+        i++; // ignore whitespace
+      // check params
+      *tempParIdx = parentIndex;
+      if (command[i] == 0x0) { // no params, cd to root
+        printString("root\r\n");
+        result = cdExec("~", curDir, tempParIdx);
+      } else { // params available
+        printString("norm\r\n");
+        result = cdExec(command + i, curDir, tempParIdx);
+      }
+      // result
+      if (result) {
+        parentIndex = *tempParIdx;
+      } else {
+        printString("No such file or directory\r\n");
+      }
+    } else if (stringStartsWith(command, "./")) {
+      executeProgram(command + 2, 0x2000, result);
+    } else {
+      printString(command); printString(": command not found\r\n");
+    }
+  }
 }
 
 
@@ -638,6 +710,7 @@ void stringCpy(char * buffOut, char * buffIn) {
     buffOut[i] = buffIn[i];
     i++;
   } while (buffIn[i] != 0x0);
+  buffOut[i] = 0x0;
 }
 
 int stringStartsWith(char * buffFull, char * buffInit) {
@@ -662,4 +735,63 @@ int filenameCmp(char * buff1, char * buff2) {
     i++;
   }
   return 1;
+}
+
+int findFilename(char * filename, char parentIndex, int isFolder) {
+  char files[SECTOR_SIZE * 2];
+  int filesIdx;
+
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+  // search
+  filesIdx = 0;
+  do {
+    if (PARENT(files + filesIdx * FILES_LINE_SIZE) == parentIndex) {
+      if (isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) == 0xFF) {
+        if (filenameCmp(filename, files + filesIdx * FILES_LINE_SIZE + 2))
+          break;
+      } else if (!isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) != 0xFF) {
+        if (filenameCmp(filename, files + filesIdx * FILES_LINE_SIZE + 2))
+          break;
+      }
+    }
+    filesIdx++;
+  } while (filesIdx < FILE_MAX_COUNT);
+  // return
+  if (filesIdx == FILE_MAX_COUNT) { // not found
+    return -1;
+  } else {
+    return filesIdx;
+  }
+}
+
+char* filenameFromIdx(int idx){
+  int i;
+  char buffer[14]; char files[1024];
+
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+
+  i = 2;
+  while(files + (idx * FILES_LINE_SIZE + i) != "\0" && i < 16){
+    buffer[i-2] = files[idx * FILES_LINE_SIZE + i];
+    i++;
+  }
+
+  return buffer;
+}
+
+int isFolderExist(char* name, int * fileIdx){
+  int i; char files[1024];
+
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+
+  for(i = 0; i < 32; i++){
+    if(SECTOR(files + i * FILES_LINE_SIZE) == 0xFF && stringCmp(name, filenameFromIdx(i)) == 1){
+      fileIdx = i;
+      return 1;
+    }
+  }
+  return 0;
 }
