@@ -227,10 +227,11 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
       partPath[j] = path[i];
       i++; j++;
     }
+
     partPath[j] = 0x0;
-    if (path[i] == '/')
-      isFolder = 1;
-    else // path[i] == 0x0
+    if (path[i] == '/') {
+      isFolder = 1; i++;
+    } else // path[i] == 0x0
       isFolder = 0;
     // check files
     filesIdx = 0;
@@ -339,19 +340,18 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
     if (path[i] == '/') filenameOffset = i + 1;
     i++;
   }
-  i = 0;
 
-  while (path[filenameOffset + i] != 0x0) {
+  i = 0;
+  while (path[filenameOffset + i] != 0x0 && i < 14) {
     files[unusedFile * FILES_LINE_SIZE + 2 + i] = path[filenameOffset + i];
     i++;
   }
 
   // Write P and S
   SECTOR(files + unusedFile * FILES_LINE_SIZE) = sectorsIdx;
-
   PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
 
-
+  // Write sectors
   i = 0;
   while (buffer[i * SECTOR_SIZE] != '\0') {
     writeSector(buffer + i * SECTOR_SIZE , unusedSector);
@@ -365,10 +365,51 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   writeSector(files, 0x101);
   writeSector(files + SECTOR_SIZE, 0x102);
   writeSector(sectors, 0x103);
-  *result = 1;
+  *result = W_SUCCESS;
+}
 
-  //
+int writeFolder(char * folderName, int *result, char parentIndex) { // return filesIdx used
+  char files[2 * SECTOR_SIZE], temp[100];
+  int i, j, filenameOffset;
+  int unusedFile;
 
+  // get map, files, and sectors
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+
+  //check for empty file
+  i = 0;
+  do {
+    if (files[i * 16] == '\0') {
+      break;
+    }
+    i++;
+  } while (i < FILE_MAX_COUNT);
+
+  if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
+    (*result) = W_ENTRY_FULL;
+    printString("ret etrfull\r\n");
+    return -1;
+  }
+  unusedFile = i;
+
+  // Write folderName
+  i = 0;
+  while (folderName[i] != 0x0 && i < 14) {
+    files[unusedFile * FILES_LINE_SIZE + 2 + i] = folderName[i];
+    i++;
+  }
+
+  // Write P and S
+  SECTOR(files + unusedFile * FILES_LINE_SIZE) = 0xFF;
+  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
+
+  // Write sector
+  writeSector(files, 0x101);
+  writeSector(files + SECTOR_SIZE, 0x102);
+
+  *result = W_SUCCESS;
+  return unusedFile;
 }
 
 void executeProgram(char *filename, int segment, int *success) {
@@ -430,6 +471,7 @@ void printMenu(){
   printString("2. Input file\r\n");
   printString("3. Read file\r\n");
   printString("4. Execute program\r\n");
+  printString("5. Populate files\r\n");
   printString("0. Exit\r\n");
 }
 
@@ -451,6 +493,7 @@ void interfaceLoop(){
   int buffLen;
   int * sectors;
   int * success;
+  int idx;
 
   printMenu();
   printString("Menu: ");
@@ -499,6 +542,13 @@ void interfaceLoop(){
           printString("Program to be executed : ");
           readString(buffer);
           executeProgram(buffer, 0x2000, success);
+        break;
+      case 5: // populate files
+          printString("Populating files\r\n");
+          idx = writeFolder("Folder1", success, 0xFF);
+          idx = writeFolder("Folder2", success, idx);
+          writeFile("Inside file 1", "File1", success, idx);
+          printString("Populating files done\r\n");
         break;
       default:
         printString("Not supported yet!\r\n");
