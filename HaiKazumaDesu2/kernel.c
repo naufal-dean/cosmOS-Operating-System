@@ -29,7 +29,6 @@ int div(int a, int b);
 int mod(int a, int b);
 void readSector(char *buffer, int sector);
 void writeSector(char *buffer, int sector);
-int validatePath(char * files, char * path, int * sepCount, char parentIndex, char * outFileIdx);
 void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
@@ -208,71 +207,59 @@ void writeSector(char *buffer, int sector) {
   interrupt(0x13, 0x301, buffer, div(sector, 36) * 0x100 + mod(sector, 18) + 1, mod(div(sector, 18), 2) * 0x100);
 }
 
-int validatePath(char * files, char * path, int * sepCount, char parentIndex, char * outFileIdx, int isFolder) {
-  int filesIdx = 0, i;
-  if (*sepCount == 0) { // base
-    do {
-      if (isFolder) {
-        if (SECTOR(files + filesIdx * FILES_LINE_SIZE) == 0xFF && PARENT(files + filesIdx * FILES_LINE_SIZE) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path)) {
-          *outFileIdx = filesIdx;
-          return 1;
-        }
-      } else { // file
-        if (SECTOR(files + filesIdx * FILES_LINE_SIZE) != 0xFF && PARENT(files + filesIdx * FILES_LINE_SIZE) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path)) {
-          *outFileIdx = filesIdx;
-          return 1;
-        }
-      }
-      filesIdx++;
-    } while (filesIdx < FILE_MAX_COUNT);
-    return 0;
-  } else { // reccurens, still folder name
-    // get next path component offset
-    i = 0;
-    while (path[i] != 0x0)
-      i++;
-    i++;
-    // check folder name
-    (*sepCount)--;
-    do {
-      if (SECTOR(files + filesIdx * FILES_LINE_SIZE) == 0xFF && PARENT(files + filesIdx * FILES_LINE_SIZE) == parentIndex && filenameCmp(files + filesIdx * FILES_LINE_SIZE, path))
-        return validatePath(files, path + i, sepCount, filesIdx, outFileIdx);
-      filesIdx++;
-    } while (filesIdx < FILE_MAX_COUNT);
-    return 0;
-  }
-}
-
 void readFile(char *buffer, char *path, int *result, char parentIndex) {
-  char files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], locPath[SECTOR_SIZE];
-  int * sepCount; int * fileIdx;
-  int i, sectorIdx;
+  char files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], partPath[SECTOR_SIZE * 2];
+  char locParIndex;
+  int i, j, filesIdx, sectorsIdx, isFolder;
+  char temp[100];
   // load
   readSector(files, 0x101);
   readSector(files + SECTOR_SIZE, 0x102);
   readSector(sectors, 0x103);
-  // check if path valid
-  // count '/'
-  i = 0; (*sepCount) = 0;
+  // validate path
+  i = 0;
+  locParIndex = parentIndex;
   while (path[i] != 0x0) {
-    locPath[i] = path[i];
-    if (path[i] == '/') {
-      locPath[i] = 0x0;
-      (*sepCount)++;
+    clear(partPath, SECTOR_SIZE * 2);
+    // copy part path
+    j = 0;
+    while(path[i] != 0x0 && path[i] != '/') {
+      partPath[j] = path[i];
+      i++; j++;
     }
-    i++;
-  }
-  locPath[i] = 0x0;
-  *fileIdx = 0;
-  if (validatePath(files, locPath, sepCount, parentIndex, fileIdx, PATH_FILE) == 0) {
-    *result = R_FILE_NOT_FOUND;
-    return;
+    partPath[j] = 0x0;
+    if (path[i] == '/')
+      isFolder = 1;
+    else // path[i] == 0x0
+      isFolder = 0;
+    // check files
+    filesIdx = 0;
+    do {
+      if (PARENT(files + filesIdx * FILES_LINE_SIZE) == locParIndex) {
+        if (isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) == 0xFF) {
+          if (filenameCmp(partPath, files + filesIdx * FILES_LINE_SIZE + 2))
+            break;
+        } else if (!isFolder && SECTOR(files + filesIdx * FILES_LINE_SIZE) != 0xFF) {
+          if (filenameCmp(partPath, files + filesIdx * FILES_LINE_SIZE + 2))
+            break;
+        }
+      }
+      filesIdx++;
+    } while (filesIdx < FILE_MAX_COUNT);
+    // check if not found
+    if (filesIdx == FILE_MAX_COUNT) {
+      printString("File not found\r\n");
+      (*result) = R_FILE_NOT_FOUND;
+      return;
+    }
+    // update locParIndex
+    locParIndex = filesIdx;
   }
   // read sector
-  sectorIdx = SECTOR(files + (*fileIdx) * FILES_LINE_SIZE);
+  sectorsIdx = SECTOR(files + filesIdx * FILES_LINE_SIZE);
   i = 0;
-  while (sectors[sectorIdx * SECTOR_LINE_SIZE + i] != 0x0) {
-    readSector(buffer + i * SECTOR_SIZE, sectors[sectorIdx * SECTOR_LINE_SIZE + i]);
+  while (sectors[sectorsIdx * SECTOR_LINE_SIZE + i] != 0x0 && i < SECTOR_LINE_SIZE) {
+    readSector(buffer + i * SECTOR_SIZE, sectors[sectorsIdx * SECTOR_LINE_SIZE + i]);
     i++;
   }
   *result = R_SUCCESS;
@@ -296,11 +283,6 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   readSector(files, 0x101);
   readSector(files + SECTOR_SIZE, 0x102);
   readSector(sectors, 0x103);
-
-  intToStr(sectors[0], temp);
-  printString(temp);
-  intToStr(sectors[1], temp);
-  printString(temp);
 
   //check unused sector from map
   for (i = 0; i < SECTOR_SIZE; i++) {
@@ -350,9 +332,6 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   }
 
   sectorsIdx = i;
-  intToStr(sectorsIdx, temp);
-
-  printString(temp);
 
   // Write filename
   i = 0;
@@ -360,7 +339,6 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
     if (path[i] == '/') filenameOffset = i + 1;
     i++;
   }
-  parentSep = i;
   i = 0;
 
   while (path[filenameOffset + i] != 0x0) {
@@ -376,7 +354,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   i = 0;
   while (buffer[i * SECTOR_SIZE] != '\0') {
-    writeSector(buffer[i * SECTOR_SIZE], unusedSector);
+    writeSector(buffer + i * SECTOR_SIZE , unusedSector);
     sectors[sectorsIdx * 16 + i] = unusedSector;
     map[unusedSector] = 0xFF;
     unusedSector++;

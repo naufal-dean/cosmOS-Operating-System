@@ -1,0 +1,1 @@
+bcc -ansi -c -o extern.o extern.c && nasm -f as86 lib.asm -o lib.o && ld86 -o extern -d extern.o lib.o
