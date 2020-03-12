@@ -29,6 +29,7 @@ int div(int a, int b);
 int mod(int a, int b);
 void readSector(char *buffer, int sector);
 void writeSector(char *buffer, int sector);
+int writeFolder(char * folderName, int *result, char parentIndex);
 void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
@@ -36,6 +37,7 @@ void executeProgram(char *filename, int segment, int *success);
 void printLogo();
 void interfaceLoop();
 void printMenu();
+int isFolderExist(char* name, int * fileIdx);
 void stringCpy(char * buffOut, char * buffIn);
 int stringStartsWith(char * buffFull, char * buffInit);
 int filenameCmp(char * buff1, char * buff2);
@@ -273,13 +275,81 @@ void clear(char *buffer, int length) {
   }
 } //Fungsi untuk mengisi buffer dengan 0
 
+int writeFolder(char * folderName, int *result, char parentIndex) { // return filesIdx used
+  char files[2 * SECTOR_SIZE], temp[100];
+  int i, j, filenameOffset;
+  int unusedFile;
+
+  // get map, files, and sectors
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+
+  //check for empty file
+  i = 0;
+  do {
+    if (files[i * 16] == 0x00) {
+      break;
+    }
+    i++;
+  } while (i < FILE_MAX_COUNT);
+
+  if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
+    (*result) = W_ENTRY_FULL;
+    printString("ret etrfull\r\n");
+    return -1;
+  }
+  unusedFile = i;
+
+  // Write folderName
+  i = 0;
+  while (folderName[i] != 0x0 && i < 14) {
+    files[unusedFile * FILES_LINE_SIZE + 2 + i] = folderName[i];
+    i++;
+  }
+
+  // Write P and S
+  SECTOR(files + unusedFile * FILES_LINE_SIZE) = 0xFF;
+  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
+
+  // Write sector
+  writeSector(files, 0x101);
+  writeSector(files + SECTOR_SIZE, 0x102);
+
+  *result = W_SUCCESS;
+  return unusedFile;
+}
+
 void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   char map[SECTOR_SIZE], files[2 * SECTOR_SIZE], sectors[SECTOR_SIZE], temp[100];
-  int i, j, filenameOffset;
+  int i, j, filenameOffset, prevOffset, folderIdx; int *success; int *fIdx;
   int unusedSector, unusedFile, sectorsIdx;
   
 
   // get map, files, and sectors
+
+  clear(temp, 100);
+  i = 0; 
+  prevOffset = 0; 
+  folderIdx = parentIndex;
+  while(path[i] != 0x00){
+  	if(path[i] == '/'){
+  		for(j = prevOffset; j < i; j++){
+  			temp[j-prevOffset] = path[j];
+  		}
+
+  		//check if folder exist. If exists, use the existing folder's idx
+  		if(isFolderExist(temp, fIdx)){
+  			folderIdx = *fIdx;
+  		} else { //write folder if doesn't exist
+  			folderIdx = writeFolder(temp, success, folderIdx);
+  		}
+  		clear(temp, 100);
+  		prevOffset = i+1;
+  	}
+  	i++;
+  }
+
+  //read all sector after being written for the folders
   readSector(map, 0x100);
   readSector(files, 0x101);
   readSector(files + SECTOR_SIZE, 0x102);
@@ -349,7 +419,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   // Write P and S
   SECTOR(files + unusedFile * FILES_LINE_SIZE) = sectorsIdx;
-  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
+  PARENT(files + unusedFile * FILES_LINE_SIZE) = folderIdx;
 
   // Write sectors
   i = 0;
@@ -368,49 +438,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   *result = W_SUCCESS;
 }
 
-int writeFolder(char * folderName, int *result, char parentIndex) { // return filesIdx used
-  char files[2 * SECTOR_SIZE], temp[100];
-  int i, j, filenameOffset;
-  int unusedFile;
 
-  // get map, files, and sectors
-  readSector(files, 0x101);
-  readSector(files + SECTOR_SIZE, 0x102);
-
-  //check for empty file
-  i = 0;
-  do {
-    if (files[i * 16] == '\0') {
-      break;
-    }
-    i++;
-  } while (i < FILE_MAX_COUNT);
-
-  if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
-    (*result) = W_ENTRY_FULL;
-    printString("ret etrfull\r\n");
-    return -1;
-  }
-  unusedFile = i;
-
-  // Write folderName
-  i = 0;
-  while (folderName[i] != 0x0 && i < 14) {
-    files[unusedFile * FILES_LINE_SIZE + 2 + i] = folderName[i];
-    i++;
-  }
-
-  // Write P and S
-  SECTOR(files + unusedFile * FILES_LINE_SIZE) = 0xFF;
-  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
-
-  // Write sector
-  writeSector(files, 0x101);
-  writeSector(files + SECTOR_SIZE, 0x102);
-
-  *result = W_SUCCESS;
-  return unusedFile;
-}
 
 void executeProgram(char *filename, int segment, int *success) {
   int maximum_size = 20 * 512;
@@ -522,9 +550,8 @@ void interfaceLoop(){
             buffLen++;
           *sectors = div(buffLen, 512);
           if (mod(buffLen, 512) != 0) *sectors += 1;
-          printString("BEFORE\r\n");
           writeFile(buffer2, buffer, sectors, 0xFF);
-          printString("AFTER\r\n");
+          printString("FILE SUCCESSFULLY WRITTEN!\r\n");
         break;
       case 3: // Read file
           printString("File to read : ");
@@ -560,6 +587,38 @@ void interfaceLoop(){
   }
   printString("Thank you for using cosmOS\r\n");
 }
+
+char* filenameFromIdx(int idx){
+	int i;
+	char buffer[14]; char files[1024];
+
+	readSector(files, 0x101);
+	readSector(files + SECTOR_SIZE, 0x102);
+
+	i = 2;
+	while(files + (idx * FILES_LINE_SIZE + i) != "\0" && i < 16){
+		buffer[i-2] = files[idx * FILES_LINE_SIZE + i];
+		i++;
+	}
+
+	return buffer;
+}
+
+int isFolderExist(char* name, int * fileIdx){
+	int i; char files[1024];
+
+	readSector(files, 0x101);
+	readSector(files + SECTOR_SIZE, 0x102);
+
+	for(i = 0; i < 32; i++){
+		if(SECTOR(files + i * FILES_LINE_SIZE) == 0xFF && stringCmp(name, filenameFromIdx(i)) == 1){
+			fileIdx = i;
+			return 1;
+		}
+	}
+	return 0;
+}
+
 
 int stringCmp(char * buff1, char * buff2) {
   int i = 0;
