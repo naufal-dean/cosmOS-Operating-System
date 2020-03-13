@@ -59,6 +59,9 @@ int main() {
   printLogo();
 
   printString("Populating files\r\n");
+  if (findFilename("bin", 0xFF, IS_FOLDER) == -1) {
+    writeFolder("bin", success, 0xFF);
+  }
   idx = writeFolder("Folder1", success, 0xFF);
   idx = writeFolder("Folder2", success, idx);
   writeFile("Inside file 1", "File1", success, idx);
@@ -513,78 +516,6 @@ int strToInt(char * string) {
   return val;
 }
 
-// void interfaceLoop(){
-//   char buffer[20 * 512], buffer2[20 * 512], choice[20 * 512];
-//   int buffLen;
-//   int * sectors;
-//   int * success;
-//   int idx;
-
-//   printMenu();
-//   printString("Menu: ");
-//   readString(choice);
-
-//   //loops while choice is not zero
-//   while(strToInt(choice) != 0){
-//     clear(buffer, 20 * 512);
-//     clear(buffer2, 20 * 512);
-//     switch(strToInt(choice)){
-//       case 1: // I/O
-//           printString("Input  : ");
-//           readString(buffer);
-//           printString("Output : ");
-//           printString(buffer);
-//           printString("\r\n");
-//         break;
-//       case 2: // Input file
-//           printString("Filename : ");
-//           readString(buffer);
-//           printString("Content  :\r\n");
-//           readString(buffer2);
-//           // get buff len and sectors needed
-//           buffLen = 0;
-//           while (buffer2[buffLen] != 0x0)
-//             buffLen++;
-//           *sectors = div(buffLen, 512);
-//           if (mod(buffLen, 512) != 0) *sectors += 1;
-//           writeFile(buffer2, buffer, sectors, 0xFF);
-//           printString("FILE SUCCESSFULLY WRITTEN!\r\n");
-//         break;
-//       case 3: // Read file
-//           printString("File to read : ");
-//           readString(buffer);
-//           readFile(buffer2, buffer, success, 0xFF);
-//           if (*success) {
-//             printString("Content      :\r\n");
-//             printString(buffer2);
-//             printString("\r\n");
-//           } else {
-//             printString("Read file failed...\r\n");
-//           }
-//         break;
-//       case 4: // Execute program
-//           printString("Program to be executed : ");
-//           readString(buffer);
-//           executeProgram(buffer, 0x2000, success);
-//         break;
-//       case 5: // populate files
-//           printString("Populating files\r\n");
-//           idx = writeFolder("Folder1", success, 0xFF);
-//           idx = writeFolder("Folder2", success, idx);
-//           writeFile("Inside file 1", "File1", success, idx);
-//           printString("Populating files done\r\n");
-//         break;
-//       default:
-//         printString("Not supported yet!\r\n");
-//     }
-//     printString("\r\n");
-//     printMenu();
-//     printString("Menu: ");
-//     readString(choice);
-//   }
-//   printString("Thank you for using cosmOS\r\n");
-// }
-
 int cdExec(char * path, char * curDir, char * parentIndex) {
   char files[SECTOR_SIZE * 2];
   int i, j, k, lastSlashIdx, filesIdx, end;
@@ -650,7 +581,7 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 void shellLoop() {
   char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16];
   char * tempParIdx; char * resultPointer;
-  int i, j, parentIndex, result;
+  int i, j, parentIndex, result, binIdx;
   char temp[100];
   // read sector
   readSector(files, 0x101);
@@ -689,7 +620,12 @@ void shellLoop() {
       /*** CD END ***/
     } else if (stringStartsWith(command, "./")) {
       /*** EXEC START ***/
-      executeProgram(command + 2, 0x2000, resultPointer, parentIndex);
+      binIdx = findFilename("bin", 0xFF, IS_FOLDER);
+      if (findFilename(command + 2, binIdx, IS_FILE) != -1) {
+        executeProgram(command + 2, 0x2000, resultPointer, binIdx);
+      } else {  // not in PATH
+        executeProgram(command + 2, 0x2000, resultPointer, parentIndex);
+      }
       /*** EXEC END ***/
     } else if (stringStartsWith(command, "cat")) {
       /*** CAT START ***/

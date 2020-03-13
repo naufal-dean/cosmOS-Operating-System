@@ -5,6 +5,7 @@
 // This should be compiled with gcc and run outside of the OS
 
 #include <stdio.h>
+#include <stdlib.h>
 
 void main(int argc, char* argv[]) {
   int i;
@@ -57,7 +58,13 @@ void main(int argc, char* argv[]) {
   // fill the name field with 00s first
   for (i = 0; i < 16; i++) files[dirindex + i] = 0x00;
   // fill the P tag
-  files[dirindex] = 0xFF;
+  if (argc == 2) {
+    files[dirindex] = 0xFF;
+    printf("Trying to load with parent = 0xff\n");
+  } else {
+    files[dirindex] = (char)strtol(argv[2], NULL, 16);
+    printf("Trying to load with parent = 0x%x\n", (char)strtol(argv[2], NULL, 16) & 0xFF);
+  }
   // copy the name over
   for (i = 0; i < 14; i++) {
     if (argv[1][i] == 0) break;
