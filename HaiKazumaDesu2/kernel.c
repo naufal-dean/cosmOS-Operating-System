@@ -618,22 +618,24 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
     stringCpy(curDir, "~");
   } else {
     filesIdx = findFilename(path, *parentIndex, IS_FOLDER);
-    if (filesIdx != -1) { // found
-      // update parentIndex
-      *parentIndex = filesIdx;
-      // update curDir
-      j = 0;
-      while (curDir[j] != 0x0) j++;
-      curDir[j] = '/'; j++;
-      // copy new path
-      k = 0;
-      while (path[k] != 0x0) {
-        curDir[j] = path[k];
-        j++; k++;
+    if (path[0] != 0x0) { 
+      if (filesIdx != -1) { // found
+        // update parentIndex
+        *parentIndex = filesIdx;
+        // update curDir
+        j = 0;
+        while (curDir[j] != 0x0) j++;
+        curDir[j] = '/'; j++;
+        // copy new path
+        k = 0;
+        while (path[k] != 0x0) {
+          curDir[j] = path[k];
+          j++; k++;
+        }
+        curDir[j] = 0x0;
+      } else {
+        return 0;
       }
-      curDir[j] = 0x0;
-    } else {
-      return 0;
     }
   }
 
@@ -646,7 +648,7 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 }
 
 void shellLoop() {
-  char command[512], curDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16];
+  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16];
   char * tempParIdx; char * resultPointer;
   int i, j, parentIndex, result;
   char temp[100];
@@ -659,7 +661,7 @@ void shellLoop() {
   while (1) {
     clear(command, 512);
     intToStr(parentIndex, temp);
-    printString(temp); printString("\r\n");
+    printString("["); printString(temp); printString("] ");
     printString(curDir); printString("$ ");
     readString(command);
     // execute command
@@ -668,29 +670,25 @@ void shellLoop() {
       i = 2;
       while (command[i] == ' ' && command[i] != 0x0)
         i++; // ignore whitespace
-      // get last curDir
-      j = 0;
-      while (curDir[j] != 0x0) j++;
+      // copy curDir
+      stringCpy(tempCurDir, curDir);
       // check params
       *tempParIdx = parentIndex;
       if (command[i] == 0x0) { // no params, cd to root
-        printString("root\r\n");
-        result = cdExec("~", curDir, tempParIdx);
+        result = cdExec("~", tempCurDir, tempParIdx);
       } else { // params available
-        printString("norm\r\n");
-        result = cdExec(command + i, curDir, tempParIdx);
+        result = cdExec(command + i, tempCurDir, tempParIdx);
       }
       // result
       if (result) {
         parentIndex = *tempParIdx;
+        stringCpy(curDir, tempCurDir);
       } else {
-        curDir[j] = 0x0;
         printString("No such file or directory\r\n");
       }
       /*** CD END ***/
     } else if (stringStartsWith(command, "./")) {
       /*** EXEC START ***/
-      printString("exec\r\n");
       executeProgram(command + 2, 0x2000, resultPointer, parentIndex);
       /*** EXEC END ***/
     } else if (stringStartsWith(command, "cat")) {
@@ -704,11 +702,9 @@ void shellLoop() {
       }
       clear(buffer, SECTOR_SIZE * 16);
       readFile(buffer, command + i, resultPointer, parentIndex);
-      if (*resultPointer) {
+      if (*resultPointer == R_SUCCESS) {
         printString(buffer);
         printString("\r\n");
-      } else {
-        printString("Read file failed...\r\n");
       }
       /*** CAT END ***/
     } else {
