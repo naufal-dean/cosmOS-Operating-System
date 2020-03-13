@@ -34,7 +34,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex);
 void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
 int writeFolder(char * folderName, int *result, char parentIndex); // return filesIdx used
-void executeProgram(char *filename, int segment, int *success);
+void executeProgram(char *filename, int segment, int *success, char parentIndex);
 void printLogo();
 void interfaceLoop();
 void printMenu();
@@ -438,14 +438,13 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
 
 
-void executeProgram(char *filename, int segment, int *success) {
-  int maximum_size = 20 * 512;
-  char buffer[20 * 512];
+void executeProgram(char *filename, int segment, int *success, char parentIndex) {
+  int maximum_size = 16 * 512;
+  char buffer[16 * 512];
   int i;
 
-  readFile(buffer, filename, success);
-
-  if (*success == 0) {
+  readFile(buffer, filename, success, parentIndex);
+  if (*success < 0) {
     printString("Program terminated!\r\n");
     return;
   }  
@@ -514,77 +513,77 @@ int strToInt(char * string) {
   return val;
 }
 
-void interfaceLoop(){
-  char buffer[20 * 512], buffer2[20 * 512], choice[20 * 512];
-  int buffLen;
-  int * sectors;
-  int * success;
-  int idx;
+// void interfaceLoop(){
+//   char buffer[20 * 512], buffer2[20 * 512], choice[20 * 512];
+//   int buffLen;
+//   int * sectors;
+//   int * success;
+//   int idx;
 
-  printMenu();
-  printString("Menu: ");
-  readString(choice);
+//   printMenu();
+//   printString("Menu: ");
+//   readString(choice);
 
-  //loops while choice is not zero
-  while(strToInt(choice) != 0){
-    clear(buffer, 20 * 512);
-    clear(buffer2, 20 * 512);
-    switch(strToInt(choice)){
-      case 1: // I/O
-          printString("Input  : ");
-          readString(buffer);
-          printString("Output : ");
-          printString(buffer);
-          printString("\r\n");
-        break;
-      case 2: // Input file
-          printString("Filename : ");
-          readString(buffer);
-          printString("Content  :\r\n");
-          readString(buffer2);
-          // get buff len and sectors needed
-          buffLen = 0;
-          while (buffer2[buffLen] != 0x0)
-            buffLen++;
-          *sectors = div(buffLen, 512);
-          if (mod(buffLen, 512) != 0) *sectors += 1;
-          writeFile(buffer2, buffer, sectors, 0xFF);
-          printString("FILE SUCCESSFULLY WRITTEN!\r\n");
-        break;
-      case 3: // Read file
-          printString("File to read : ");
-          readString(buffer);
-          readFile(buffer2, buffer, success, 0xFF);
-          if (*success) {
-            printString("Content      :\r\n");
-            printString(buffer2);
-            printString("\r\n");
-          } else {
-            printString("Read file failed...\r\n");
-          }
-        break;
-      case 4: // Execute program
-          printString("Program to be executed : ");
-          readString(buffer);
-          executeProgram(buffer, 0x2000, success);
-        break;
-      case 5: // populate files
-          printString("Populating files\r\n");
-          idx = writeFolder("Folder1", success, 0xFF);
-          idx = writeFolder("Folder2", success, idx);
-          writeFile("Inside file 1", "File1", success, idx);
-          printString("Populating files done\r\n");
-        break;
-      default:
-        printString("Not supported yet!\r\n");
-    }
-    printString("\r\n");
-    printMenu();
-    printString("Menu: ");
-    readString(choice);
-  }
-  printString("Thank you for using cosmOS\r\n");
-}
+//   //loops while choice is not zero
+//   while(strToInt(choice) != 0){
+//     clear(buffer, 20 * 512);
+//     clear(buffer2, 20 * 512);
+//     switch(strToInt(choice)){
+//       case 1: // I/O
+//           printString("Input  : ");
+//           readString(buffer);
+//           printString("Output : ");
+//           printString(buffer);
+//           printString("\r\n");
+//         break;
+//       case 2: // Input file
+//           printString("Filename : ");
+//           readString(buffer);
+//           printString("Content  :\r\n");
+//           readString(buffer2);
+//           // get buff len and sectors needed
+//           buffLen = 0;
+//           while (buffer2[buffLen] != 0x0)
+//             buffLen++;
+//           *sectors = div(buffLen, 512);
+//           if (mod(buffLen, 512) != 0) *sectors += 1;
+//           writeFile(buffer2, buffer, sectors, 0xFF);
+//           printString("FILE SUCCESSFULLY WRITTEN!\r\n");
+//         break;
+//       case 3: // Read file
+//           printString("File to read : ");
+//           readString(buffer);
+//           readFile(buffer2, buffer, success, 0xFF);
+//           if (*success) {
+//             printString("Content      :\r\n");
+//             printString(buffer2);
+//             printString("\r\n");
+//           } else {
+//             printString("Read file failed...\r\n");
+//           }
+//         break;
+//       case 4: // Execute program
+//           printString("Program to be executed : ");
+//           readString(buffer);
+//           executeProgram(buffer, 0x2000, success);
+//         break;
+//       case 5: // populate files
+//           printString("Populating files\r\n");
+//           idx = writeFolder("Folder1", success, 0xFF);
+//           idx = writeFolder("Folder2", success, idx);
+//           writeFile("Inside file 1", "File1", success, idx);
+//           printString("Populating files done\r\n");
+//         break;
+//       default:
+//         printString("Not supported yet!\r\n");
+//     }
+//     printString("\r\n");
+//     printMenu();
+//     printString("Menu: ");
+//     readString(choice);
+//   }
+//   printString("Thank you for using cosmOS\r\n");
+// }
 
 int cdExec(char * path, char * curDir, char * parentIndex) {
   char files[SECTOR_SIZE * 2];
@@ -647,9 +646,9 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 }
 
 void shellLoop() {
-  char command[512], curDir[2 * 512], files[SECTOR_SIZE * 2];
-  char * tempParIdx;
-  int i, parentIndex, result;
+  char command[512], curDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16];
+  char * tempParIdx; char * resultPointer;
+  int i, j, parentIndex, result;
   char temp[100];
   // read sector
   readSector(files, 0x101);
@@ -663,11 +662,15 @@ void shellLoop() {
     printString(temp); printString("\r\n");
     printString(curDir); printString("$ ");
     readString(command);
-    // Execute command
+    // execute command
     if (stringStartsWith(command, "cd")) {
+      /*** CD START ***/
       i = 2;
       while (command[i] == ' ' && command[i] != 0x0)
         i++; // ignore whitespace
+      // get last curDir
+      j = 0;
+      while (curDir[j] != 0x0) j++;
       // check params
       *tempParIdx = parentIndex;
       if (command[i] == 0x0) { // no params, cd to root
@@ -681,11 +684,35 @@ void shellLoop() {
       if (result) {
         parentIndex = *tempParIdx;
       } else {
+        curDir[j] = 0x0;
         printString("No such file or directory\r\n");
       }
+      /*** CD END ***/
     } else if (stringStartsWith(command, "./")) {
-      executeProgram(command + 2, 0x2000, result);
+      /*** EXEC START ***/
+      printString("exec\r\n");
+      executeProgram(command + 2, 0x2000, resultPointer, parentIndex);
+      /*** EXEC END ***/
+    } else if (stringStartsWith(command, "cat")) {
+      /*** CAT START ***/
+      i = 3;
+      while (command[i] == ' ' && command[i] != 0x0)
+        i++; // ignore whitespace
+      if (command[i] == 0x0) {
+        printString("No input file\r\n");
+        continue;
+      }
+      clear(buffer, SECTOR_SIZE * 16);
+      readFile(buffer, command + i, resultPointer, parentIndex);
+      if (*resultPointer) {
+        printString(buffer);
+        printString("\r\n");
+      } else {
+        printString("Read file failed...\r\n");
+      }
+      /*** CAT END ***/
     } else {
+      /*** NOT FOUND ***/
       printString(command); printString(": command not found\r\n");
     }
   }

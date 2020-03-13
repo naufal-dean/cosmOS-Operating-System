@@ -6,8 +6,13 @@ void menu();
 void interface();
 
 int main() {
+  // var
+  int * result;
+  // main
   interrupt(0x21, 0, "Welcome to Cosmic Calulator!\r\n", 0, 0);
   interface();
+  // back to kernel
+  interrupt(0x21, 0xFF06, "KERNEL", 0x4000, result);
 	while(1);
 	return 0;
 }
