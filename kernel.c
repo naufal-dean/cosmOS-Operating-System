@@ -1,13 +1,15 @@
 /* Macro define */
+/* Byte size */
 #define SECTOR_SIZE 512
-// #define FILES_LINE_SIZE 16
-#define SECTOR_LINE_SIZE 16
+#define FILES_LINE_SIZE 16
 #define FILE_NAME_OFFSET 2
 #define FILE_MAX_COUNT 64
+#define SECTOR_LINE_SIZE 16
 #define DIR_LINE_SIZE 32
+/* Parent and Sector byte selector */
 #define PARENT(P) (P)[0]
 #define SECTOR(P) (P)[1]
-
+/* RW return code */
 #define R_SUCCESS 1
 #define R_FILE_NOT_FOUND -1
 #define W_SUCCESS 1
@@ -15,40 +17,43 @@
 #define W_ENTRY_FULL -2
 #define W_SECTOR_FULL -3
 #define W_INVALID_FOLDER -4
+/* Folder and file flag */
+#define IS_FOLDER 1
+#define IS_FILE 0
 
-int IS_FOLDER = 1;
-int IS_FILE = 0;
-int FILES_LINE_SIZE = 16;
-
-
-/* Ini deklarasi fungsi */
+/* Function declaration */
+/* Main */
 void handleInterrupt21 (int AX, int BX, int CX, int DX);
 void printString(char *string);
 void readString(char *string);
-int div(int a, int b);
-int mod(int a, int b);
 void readSector(char *buffer, int sector);
 void writeSector(char *buffer, int sector);
-int writeFolder(char * folderName, int *result, char parentIndex);
 void readFile(char *buffer, char *path, int *result, char parentIndex);
-void clear(char *buffer, int length); //Fungsi untuk mengisi buffer dengan 0
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
-int writeFolder(char * folderName, int *result, char parentIndex); // return filesIdx used
+int writeFolder(char * folderName, int *result, char parentIndex);
 void executeProgram(char *filename, int segment, int *success, char parentIndex);
-void printLogo();
-void interfaceLoop();
-void printMenu();
-int isFolderExist(char* name, int * fileIdx);
-void stringCpy(char * buffOut, char * buffIn);
-int stringStartsWith(char * buffFull, char * buffInit);
-int filenameCmp(char * buff1, char * buff2);
-int stringCmp(char * a, char * b);
-int findFilename(char * filename, char parentIndex, int isFolder);
-
+/* Shell */
 int cdExec(char * path, char * curDir, char * parentIndex);
 void shellLoop();
+/* Strings */
+int stringCmpUtils(char * buff1, char * buff2, int buffLen);
+int stringCmp(char * buff1, char * buff2);
+int filenameCmp(char * buff1, char * buff2);
+void stringCpy(char * buffOut, char * buffIn);
+int stringStartsWith(char * buffFull, char * buffInit);
+/* Utils */
+void clear(char *buffer, int length);
+int div(int a, int b);
+int mod(int a, int b);
+void intToStr(int number, char * buffer);
+int strToInt(char * string);
+int findFilename(char * filename, char parentIndex, int isFolder);
+char* filenameFromIdx(int idx);
+int isFolderExist(char* name, int * fileIdx);
+/* Etc */
+void printLogo();
 
-
+/* Main program */
 int main() {
   char buffer[20 * 512];
   int * sectors;
@@ -87,6 +92,9 @@ int main() {
   while (1);
 }
 
+/*
+ * Main
+ */
 void handleInterrupt21 (int AX, int BX, int CX, int DX) {
    char AL, AH;
    AL = (char) (AX);
@@ -116,36 +124,6 @@ void handleInterrupt21 (int AX, int BX, int CX, int DX) {
       default:
          printString("Invalid interrupt");
    }
-}
-
-
-void intToStr(int number, char * buffer) {
-  int tempNum, i, j, neg;
-
-  if (number == 0) {
-    buffer[0] = '0';
-    buffer[1] = 0x0;
-  } else {
-        neg = number < 0;
-        if (neg) number *= -1;
-        tempNum = number;
-        
-    i = 0;
-    while (tempNum != 0) {
-            buffer[i] = mod(tempNum, 10) + 48;
-            tempNum = div(tempNum, 10);
-            i++;
-    }
-        if (neg) buffer[i++] = '-';
-        
-        // swap
-        for (j = 0; j < div(i, 2); ++j) {
-            buffer[j] ^= buffer[i-j-1];
-            buffer[i-j-1] ^= buffer[j];
-            buffer[j] ^= buffer[i-j-1];
-        }
-        buffer[i] = 0x0;
-  }
 }
 
 void printString(char *string) {
@@ -193,25 +171,6 @@ void readString(char *string) {
       interrupt(0x10, 0xe*256+cKarakter, 0, 0, 0);
     }
   }
-}
-
-int div(int a, int b) {
-  int l = 0, r = a, ret = 0;
-
-  while (l <= r) {
-    int mid = (l + r) >> 1;
-    if (a >= mid * b) {
-      l = mid + 1;
-      ret = mid;
-    } else {
-      r = mid - 1;
-    }
-  }
-  return ret;
-}
-
-int mod(int a, int b) {
-  return a - b * div(a, b);
 }
 
 void readSector(char *buffer, int sector) {
@@ -269,57 +228,6 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
   *result = R_SUCCESS;
 }
 
-void clear(char *buffer, int length) {
-  int i;
-  for (i = 0; i < length; i++) {
-    buffer[i] = 0x0;
-  }
-} //Fungsi untuk mengisi buffer dengan 0
-
-int writeFolder(char * folderName, int *result, char parentIndex) { // return filesIdx used
-  char files[2 * SECTOR_SIZE], temp[100];
-  int i, j, filenameOffset;
-  int unusedFile;
-
-  // get map, files, and sectors
-  readSector(files, 0x101);
-  readSector(files + SECTOR_SIZE, 0x102);
-
-  //check for empty file
-  i = 0;
-  do {
-    if (files[i * 16] == 0x00) {
-      break;
-    }
-    i++;
-  } while (i < FILE_MAX_COUNT);
-
-  if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
-    (*result) = W_ENTRY_FULL;
-    printString("ret etrfull\r\n");
-    return -1;
-  }
-  unusedFile = i;
-
-  // Write folderName
-  i = 0;
-  while (folderName[i] != 0x0 && i < 14) {
-    files[unusedFile * FILES_LINE_SIZE + 2 + i] = folderName[i];
-    i++;
-  }
-
-  // Write P and S
-  SECTOR(files + unusedFile * FILES_LINE_SIZE) = 0xFF;
-  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
-
-  // Write sector
-  writeSector(files, 0x101);
-  writeSector(files + SECTOR_SIZE, 0x102);
-
-  *result = W_SUCCESS;
-  return unusedFile;
-}
-
 void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   char map[SECTOR_SIZE], files[2 * SECTOR_SIZE], sectors[SECTOR_SIZE], temp[100];
   int i, j, filenameOffset, prevOffset, folderIdx; int *success; int *fIdx;
@@ -333,21 +241,21 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   prevOffset = 0; 
   folderIdx = parentIndex;
   while(path[i] != 0x00){
-  	if(path[i] == '/'){
-  		for(j = prevOffset; j < i; j++){
-  			temp[j-prevOffset] = path[j];
-  		}
+    if(path[i] == '/'){
+      for(j = prevOffset; j < i; j++){
+        temp[j-prevOffset] = path[j];
+      }
 
-  		//check if folder exist. If exists, use the existing folder's idx
-  		if(isFolderExist(temp, fIdx)){
-  			folderIdx = *fIdx;
-  		} else { //write folder if doesn't exist
-  			folderIdx = writeFolder(temp, success, folderIdx);
-  		}
-  		clear(temp, 100);
-  		prevOffset = i+1;
-  	}
-  	i++;
+      //check if folder exist. If exists, use the existing folder's idx
+      if(isFolderExist(temp, fIdx)){
+        folderIdx = *fIdx;
+      } else { //write folder if doesn't exist
+        folderIdx = writeFolder(temp, success, folderIdx);
+      }
+      clear(temp, 100);
+      prevOffset = i+1;
+    }
+    i++;
   }
 
   //read all sector after being written for the folders
@@ -439,7 +347,49 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   *result = W_SUCCESS;
 }
 
+int writeFolder(char * folderName, int *result, char parentIndex) { // return filesIdx used
+  char files[2 * SECTOR_SIZE], temp[100];
+  int i, j, filenameOffset;
+  int unusedFile;
 
+  // get map, files, and sectors
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
+
+  //check for empty file
+  i = 0;
+  do {
+    if (files[i * 16] == 0x00) {
+      break;
+    }
+    i++;
+  } while (i < FILE_MAX_COUNT);
+
+  if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
+    (*result) = W_ENTRY_FULL;
+    printString("ret etrfull\r\n");
+    return -1;
+  }
+  unusedFile = i;
+
+  // Write folderName
+  i = 0;
+  while (folderName[i] != 0x0 && i < 14) {/* By*/
+    files[unusedFile * FILES_LINE_SIZE + 2 + i] = folderName[i];
+    i++;
+  }
+
+  // Write P and S
+  // SECTO* Parent and Sector byte selector */files + unusedFile * FILES_LINE_SIZE) = 0xFF;
+  PARENT(files + unusedFile * FILES_LINE_SIZE) = parentIndex;
+
+  // Write sector
+  writeSector(files, 0x101);
+  writeSector(files + SECTOR_SIZE, 0x102);
+
+  *result = W_SUCCESS;
+  return unusedFile;
+}
 
 void executeProgram(char *filename, int segment, int *success, char parentIndex) {
   int maximum_size = 16 * 512;
@@ -459,63 +409,9 @@ void executeProgram(char *filename, int segment, int *success, char parentIndex)
   launchProgram(segment);
 }
 
-void printLogo(){
-  int i, j;
-  for(i = 0; i <= 50; i++){
-    for(j = 0; j<= 80; j++){
-      putInMemory(0xB000, 0x8000 + (80*j+i)*2, ' ');
-      putInMemory(0xB000, 0x8001 + (80*j+i)*2, 0xD);
-    }
-  }
-  printString("\r\n\r\n");
-  printString("                                                         _.oo.\r\n");
-  printString("                                 _.u[[/;:,.         .odMMMMMM'\r\n");
-  printString("                              .o888UU[[[/;:-.  .o@P^    MMM^\r\n");
-  printString("                             oN88888UU[[[/;::-.        dP^\r\n");
-  printString("                            dNMMNN888UU[[[/;:--.   .o@P^\r\n");
-  printString("                           ,MMMMMMN888UU[[/;::-. o@^\r\n");
-  printString("                           NNMMMNN888UU[[[/~.o@P^\r\n");
-  printString("                           888888888UU[[[/o@^-..\r\n");
-  printString("                          oI8888UU[[[/o@P^:--..\r\n");
-  printString("                       .@^  YUU[[[/o@^;::---..\r\n");
-  printString("                     oMP     ^/o@P^;:::---..\r\n");
-  printString("                  .dMMM    .o@^ ^;::---...\r\n");
-  printString("                 dMMMMMMM@^`       `^^^^\r\n");
-  printString("                YMMMUP^\r\n");
-  printString("                 ^^\r\n");
-  printString("                                                 ____  _____\r\n");
-  printString("                      _________  _________ ___  / __ |/ ___/\r\n");
-  printString("                     / ___/ __ |/ ___/ __ `__ |/ / / /|__ | \r\n");
-  printString("                    / /__/ /_/ (__  ) / / / / / /_/ /___/ / \r\n");
-  printString("                    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
-  printString("\r\n\r\n");
-  interrupt(0x15, 0x8600, 0x8480, 0x1e);
-  interrupt(0x10, 0x2, 0, 0, 0);  
-}
-
-void printMenu(){
-  printString("Masukkan nomor dari service yang ingin digunakan:\r\n");
-  printString("1. Read string, print ke layar\r\n");
-  printString("2. Input file\r\n");
-  printString("3. Read file\r\n");
-  printString("4. Execute program\r\n");
-  printString("5. Populate files\r\n");
-  printString("0. Exit\r\n");
-}
-
-int strToInt(char * string) {
-  int val = 0, i = 0, neg;
-
-  neg = string[0] == '-';
-  if (neg) i++;
-  while (string[i] != 0x0) {
-    val = val * 10 + (string[i] - 48);
-    i++;
-  }
-  if (neg) val *= -1;
-  return val;
-}
-
+/*
+ * Shell
+ */
 int cdExec(char * path, char * curDir, char * parentIndex) {
   char files[SECTOR_SIZE * 2];
   int i, j, k, lastSlashIdx, filesIdx, end;
@@ -650,10 +546,12 @@ void shellLoop() {
   }
 }
 
-
-int stringCmp(char * buff1, char * buff2) {
+/*
+ * Strings
+ */
+int stringCmpUtils(char * buff1, char * buff2, int buffLen) {
   int i = 0;
-  while (1) {
+  while (i < buffLen) {
     if (buff1[i] != buff2[i])
       return 0;
     if (buff1[i] == 0x0)
@@ -661,6 +559,14 @@ int stringCmp(char * buff1, char * buff2) {
     i++;
   }
   return 1;
+}
+
+int stringCmp(char * buff1, char * buff2) {
+  return stringCmpUtils(buff1, buff2, 1e6); // assume buffer length not exceeds 1e6
+}
+
+int filenameCmp(char * buff1, char * buff2) {
+  return stringCmpUtils(buff1, buff2, 14);
 }
 
 void stringCpy(char * buffOut, char * buffIn) {
@@ -684,16 +590,75 @@ int stringStartsWith(char * buffFull, char * buffInit) {
   return 1;
 }
 
-int filenameCmp(char * buff1, char * buff2) {
-  int i = 0;
-  while (i < 14) {
-    if (buff1[i] != buff2[i])
-      return 0;
-    if (buff1[i] == 0x0)
-      break;
+/*
+ * Utils
+ */
+void clear(char *buffer, int length) {
+  int i;
+  for (i = 0; i < length; i++) {
+    buffer[i] = 0x0;
+  }
+} //Fungsi untuk mengisi buffer dengan 0
+
+int div(int a, int b) {
+  int l = 0, r = a, ret = 0;
+
+  while (l <= r) {
+    int mid = (l + r) >> 1;
+    if (a >= mid * b) {
+      l = mid + 1;
+      ret = mid;
+    } else {
+      r = mid - 1;
+    }
+  }
+  return ret;
+}
+
+int mod(int a, int b) {
+  return a - b * div(a, b);
+}
+
+void intToStr(int number, char * buffer) {
+  int tempNum, i, j, neg;
+
+  if (number == 0) {
+    buffer[0] = '0';
+    buffer[1] = 0x0;
+  } else {
+        neg = number < 0;
+        if (neg) number *= -1;
+        tempNum = number;
+        
+    i = 0;
+    while (tempNum != 0) {
+            buffer[i] = mod(tempNum, 10) + 48;
+            tempNum = div(tempNum, 10);
+            i++;
+    }
+        if (neg) buffer[i++] = '-';
+        
+        // swap
+        for (j = 0; j < div(i, 2); ++j) {
+            buffer[j] ^= buffer[i-j-1];
+            buffer[i-j-1] ^= buffer[j];
+            buffer[j] ^= buffer[i-j-1];
+        }
+        buffer[i] = 0x0;
+  }
+}
+
+int strToInt(char * string) {
+  int val = 0, i = 0, neg;
+
+  neg = string[0] == '-';
+  if (neg) i++;
+  while (string[i] != 0x0) {
+    val = val * 10 + (string[i] - 48);
     i++;
   }
-  return 1;
+  if (neg) val *= -1;
+  return val;
 }
 
 int findFilename(char * filename, char parentIndex, int isFolder) {
@@ -724,7 +689,7 @@ int findFilename(char * filename, char parentIndex, int isFolder) {
   }
 }
 
-char* filenameFromIdx(int idx){
+char* filenameFromIdx(int idx) {
   int i;
   char buffer[14]; char files[1024];
 
@@ -740,7 +705,7 @@ char* filenameFromIdx(int idx){
   return buffer;
 }
 
-int isFolderExist(char* name, int * fileIdx){
+int isFolderExist(char* name, int * fileIdx) {
   int i; char files[1024];
 
   readSector(files, 0x101);
@@ -753,4 +718,38 @@ int isFolderExist(char* name, int * fileIdx){
     }
   }
   return 0;
+}
+
+void printLogo() {
+  int i, j;
+  for(i = 0; i <= 50; i++){
+    for(j = 0; j<= 80; j++){
+      putInMemory(0xB000, 0x8000 + (80*j+i)*2, ' ');
+      putInMemory(0xB000, 0x8001 + (80*j+i)*2, 0xD);
+    }
+  }
+  printString("\r\n\r\n");
+  printString("                                                         _.oo.\r\n");
+  printString("                                 _.u[[/;:,.         .odMMMMMM'\r\n");
+  printString("                              .o888UU[[[/;:-.  .o@P^    MMM^\r\n");
+  printString("                             oN88888UU[[[/;::-.        dP^\r\n");
+  printString("                            dNMMNN888UU[[[/;:--.   .o@P^\r\n");
+  printString("                           ,MMMMMMN888UU[[/;::-. o@^\r\n");
+  printString("                           NNMMMNN888UU[[[/~.o@P^\r\n");
+  printString("                           888888888UU[[[/o@^-..\r\n");
+  printString("                          oI8888UU[[[/o@P^:--..\r\n");
+  printString("                       .@^  YUU[[[/o@^;::---..\r\n");
+  printString("                     oMP     ^/o@P^;:::---..\r\n");
+  printString("                  .dMMM    .o@^ ^;::---...\r\n");
+  printString("                 dMMMMMMM@^`       `^^^^\r\n");
+  printString("                YMMMUP^\r\n");
+  printString("                 ^^\r\n");
+  printString("                                                 ____  _____\r\n");
+  printString("                      _________  _________ ___  / __ |/ ___/\r\n");
+  printString("                     / ___/ __ |/ ___/ __ `__ |/ / / /|__ | \r\n");
+  printString("                    / /__/ /_/ (__  ) / / / / / /_/ /___/ / \r\n");
+  printString("                    |___/|____/____/_/ /_/ /_/|____//____/  \r\n");
+  printString("\r\n\r\n");
+  interrupt(0x15, 0x8600, 0x8480, 0x1e);
+  interrupt(0x10, 0x2, 0, 0, 0);  
 }
