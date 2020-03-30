@@ -1,4 +1,4 @@
-#include "../../utils/constant_utils.c"
+#include "../../lib/constant.c"
 
 int cdExec(char * path, char * curDir, char * parentIndex);
 void shellLoop();

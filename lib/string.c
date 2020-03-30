@@ -1,4 +1,4 @@
-#include "constant_utils.c"
+#include "constant.c"
 
 void clear(char *buffer, int length) {
   int i;
