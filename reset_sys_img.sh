@@ -6,3 +6,5 @@ dd if=img/files.img of=system.img bs=512 count=2 seek=257 conv=notrunc
 dd if=img/sectors.img of=system.img bs=512 count=1 seek=259 conv=notrunc
 ./compile_shell.sh
 ./loadFile bin/sh/shell 0x1
+./compile_extern.sh
+./loadFile ext/extern 0x1
