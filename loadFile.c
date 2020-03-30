@@ -8,11 +8,19 @@
 #include <stdlib.h>
 
 void main(int argc, char* argv[]) {
-  int i;
+  int i, filenameOffset;
 
   if (argc < 2) {
     printf("Specify file name to load\n");
     return;
+  }
+
+  // separate path
+  i = 0; filenameOffset = 0;
+  while (argv[1][i] != 0x0) {
+    if (argv[1][i] == '/')
+      filenameOffset = i + 1;
+    i++;
   }
 
   // open the source file
@@ -67,8 +75,8 @@ void main(int argc, char* argv[]) {
   }
   // copy the name over
   for (i = 0; i < 14; i++) {
-    if (argv[1][i] == 0) break;
-    files[dirindex + 2 + i] = argv[1][i];
+    if (argv[1][i + filenameOffset] == 0) break;
+    files[dirindex + 2 + i] = argv[1][i + filenameOffset];
   }
 
   // find a free entry in the sector
