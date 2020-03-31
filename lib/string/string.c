@@ -1,4 +1,5 @@
-#include "constant.c"
+#include "../constant.c"
+#include "string.h"
 
 void clear(char *buffer, int length) {
   int i;
@@ -74,29 +75,4 @@ int findFilename(char * files, char * filename, char parentIndex, int isFolder) 
   } else {
     return filesIdx;
   }
-}
-
-char* filenameFromIdx(char * files, int idx){
-  int i;
-  char buffer[14];
-
-  i = 2;
-  while(files + (idx * FILES_LINE_SIZE + i) != "\0" && i < 16){
-    buffer[i-2] = files[idx * FILES_LINE_SIZE + i];
-    i++;
-  }
-
-  return buffer;
-}
-
-int isFolderExist(char * files, char* name, int * fileIdx){
-  int i;
-
-  for(i = 0; i < 32; i++){
-    if(SECTOR(files + i * FILES_LINE_SIZE) == 0xFF && stringCmp(name, filenameFromIdx(i)) == 1){
-      fileIdx = i;
-      return 1;
-    }
-  }
-  return 0;
 }

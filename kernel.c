@@ -11,9 +11,6 @@ void readFile(char *buffer, char *path, int *result, char parentIndex);
 void writeFile(char *buffer, char *path, int *result, char parentIndex);
 int writeFolder(char * folderName, int *result, char parentIndex);
 void executeProgram(char *filename, int segment, int *success, char parentIndex);
-/* Shell */
-int cdExec(char * path, char * curDir, char * parentIndex);
-void shellLoop();
 /* Etc */
 void printLogo();
 
@@ -36,6 +33,9 @@ int main() {
     idx = writeFolder("Folder1", success, 0xFF);
     idx = writeFolder("Folder2", success, idx);
     writeFile("Inside file 1", "File1", success, idx);
+    writeFile("Inside file 2", "Folder1/Folder2/File2", success, 0xFF);
+    writeFile("Inside file 2 dupl", "Folder1/Folder2/File2", success, 0xFF);
+    writeFile("Inside file 3", "Folder2/Folder3/File3", success, 0xFF);
     printString("Populating files done\r\n");
   }
 
@@ -132,7 +132,7 @@ void writeSector(char *buffer, int sector) {
 }
 
 void readFile(char *buffer, char *path, int *result, char parentIndex) {
-  char files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], partPath[SECTOR_SIZE * 2];
+  char files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], partPath[SECTOR_SIZE];
   char locParIndex;
   int i, j, filesIdx, sectorsIdx, isFolder;
   char temp[100];
@@ -144,7 +144,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
   i = 0;
   locParIndex = parentIndex;
   while (path[i] != 0x0) {
-    clear(partPath, SECTOR_SIZE * 2);
+    clear(partPath, SECTOR_SIZE);
     // copy part path
     j = 0;
     while(path[i] != 0x0 && path[i] != '/') {
@@ -190,26 +190,35 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   readSector(files + SECTOR_SIZE, 0x102);
   readSector(sectors, 0x103);
 
+  // validate folder
   clear(temp, 100);
   i = 0; 
   prevOffset = 0; 
   folderIdx = parentIndex;
-  while(path[i] != 0x00){
-  	if(path[i] == '/'){
-  		for(j = prevOffset; j < i; j++){
+  while (path[i] != 0x00) {
+  	if (path[i] == '/') {
+  		for (j = prevOffset; j < i; j++) {
   			temp[j-prevOffset] = path[j];
   		}
 
   		//check if folder exist. If exists, use the existing folder's idx
-  		if(isFolderExist(files, temp, fIdx)){
-  			folderIdx = *fIdx;
-  		} else { //write folder if doesn't exist
-  			folderIdx = writeFolder(temp, success, folderIdx);
-  		}
+      if ((folderIdx = findFilename(files, temp, folderIdx, IS_FOLDER)) == -1) {
+        (*result) = W_INVALID_FOLDER;
+        printString("Invalid folder\r\n");
+        return; 
+      }
+
   		clear(temp, 100);
   		prevOffset = i+1;
   	}
   	i++;
+  }
+
+  // validate filename
+  if (findFilename(files, path + prevOffset, folderIdx, IS_FILE) != -1) {
+    (*result) = W_FILE_ALREADY_EXIST;
+    printString("File already exist\r\n");
+    return; 
   }
 
   //check unused sector from map
@@ -221,7 +230,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == SECTOR_SIZE) { //NOT FOUND, keluarkan pesan error -3
     (*result) = W_SECTOR_FULL;
-    printString("ret secfull\r\n");
+    printString("Sector full\r\n");
     return;
   }
 
@@ -238,12 +247,11 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == 64) { //NOT FOUND, keluarkan pesan error -2
     (*result) = W_ENTRY_FULL;
-    printString("ret etrfull\r\n");
+    printString("Entry full\r\n");
     return;
   }
 
   unusedFile = i;
-
 
   // Empty Sectors
   i = 0;
@@ -256,6 +264,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == 32) { //NOT FOUND, keluarkan pesan error -3
     (*result) = W_SECTOR_FULL;
+    printString("Sector full\r\n");
     return;
   }
 
@@ -284,7 +293,10 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
     writeSector(buffer + i * SECTOR_SIZE , unusedSector);
     sectors[sectorsIdx * 16 + i] = unusedSector;
     map[unusedSector] = 0xFF;
-    unusedSector++;
+    // Get next unusedSector
+    do {
+      unusedSector++;
+    } while (map[unusedSector] == 0xFF);
     i++;
   }
 

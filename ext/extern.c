@@ -1,3 +1,5 @@
+#include "../lib/math/math.h"
+
 void menu();
 void interface();
 

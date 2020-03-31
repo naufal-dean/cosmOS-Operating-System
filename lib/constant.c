@@ -1,3 +1,6 @@
+#ifndef CONSTANT
+#define CONSTANT
+
 /* Byte size */
 #define SECTOR_SIZE 512
 #define FILES_LINE_SIZE 16
@@ -19,3 +22,5 @@
 /* Folder and file flag */
 #define IS_FOLDER 1
 #define IS_FILE 0
+
+#endif // CONSTANT

@@ -1,3 +1,5 @@
+#include "math.h"
+
 int div(int a, int b) {
   int l = 0, r = a, ret = 0;
 
