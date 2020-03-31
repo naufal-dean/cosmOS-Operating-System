@@ -42,9 +42,8 @@ int deleteFile(char * filePath) {
 
 		// Check if file not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, isFolder)) == -1) {
-			printString("File not found\r\n");
-			(*result) = D_FILE_NOT_FOUND;
-			return;
+			printString_intr("File not found\r\n");
+			return D_FILE_NOT_FOUND;
 		}
 	}
 
@@ -71,5 +70,7 @@ int deleteFile(char * filePath) {
 	writeSector_intr(files, 0x101);
 	writeSector_intr(files + SECTOR_SIZE, 0x102);
 	writeSector_intr(sectors, 0x103);
+
+	return D_SUCCESS;
 }
 
