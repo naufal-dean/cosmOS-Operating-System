@@ -1,20 +1,23 @@
-#include "../lib/fileIO/fileIO.h"
-#include "../lib/appShellLinker/appShellLinker.h"
-#include "../lib/constant.c"
+#include "viim.h"
 
 int main() {
 	char args[SECTOR_SIZE], buffer[SECTOR_SIZE * 16];
 
 	getArgs(args);
-	
-	readFile(filePath, buffer);
-	editor(buffer);
+	print("test");
 
 
+	// readFile(filePath, buffer);
+	// editor(buffer);
+	// writeFile(filePath, buffer);
 
+	backToShell();
 	return 0;
 }
 
 void editor(char * buffer) {
+	int exit = 0;
+	while (!exit) {
 
+	}
 }
