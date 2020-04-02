@@ -8,3 +8,5 @@ dd if=img/sectors.img of=system.img bs=512 count=1 seek=259 conv=notrunc
 ./loadFile bin/sh/shell 0x1
 ./compile_extern.sh
 ./loadFile ext/extern 0x1
+./compile_mv.sh
+./loadFile cmd/mv/mv 0x1

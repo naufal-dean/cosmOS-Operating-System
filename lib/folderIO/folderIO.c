@@ -2,7 +2,7 @@
 
 int createFolder(char * folderPath) {
 	char files[SECTOR_SIZE * 2], partPath[SECTOR_SIZE];
-	int i, j, unusedFilesIdx, prevOffset;
+	int i, j, unusedFilesIdx, prevOffset, parentIdx;
 
 	// Validate folder folderPath
 	clear(partPath, SECTOR_SIZE);

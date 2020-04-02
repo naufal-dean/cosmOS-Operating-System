@@ -21,6 +21,7 @@ void menu(){
   interrupt(0x21, 0, "3. Multiplication\r\n", 0, 0);
   interrupt(0x21, 0, "0. EXIT\r\n", 0, 0 );
 }
+
 void interface(){
   char ch[10], buf1[10], buf2[10], buf3[20];
   int hold;

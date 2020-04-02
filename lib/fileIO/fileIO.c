@@ -14,7 +14,7 @@ int writeFile(char * filePath, char * buffer) {
 
 int deleteFile(char * filePath) {
 	char map[SECTOR_SIZE], files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], partPath[SECTOR_SIZE], cleanBuffer[SECTOR_SIZE];
-	int i, j, filesIdx, sectorsIdx, targetSector;
+	int i, j, filesIdx, sectorsIdx, targetSector, isFolder;
 	
 	// Get map, files, and sectors
 	readSector_intr(map, 0x100);

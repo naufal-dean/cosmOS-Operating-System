@@ -70,9 +70,9 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 }
 
 void shellLoop() {
-  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16];
+  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE];
   char * tempParIdx; char * resultPointer;
-  int i, j, parentIndex, result, binIdx;
+  int i, j, parentIndex, result, binIdx, cnt;
   char temp[100];
   // read sector
   interrupt(0x21, 0x02, files, 0x101, 0);
@@ -81,6 +81,10 @@ void shellLoop() {
   stringCpy(curDir, "~");
   parentIndex = 0xFF;
   while (1) {
+    // read sector
+    interrupt(0x21, 0x02, files, 0x101, 0);
+    interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
+
     clear(command, 512);
     intToStr(parentIndex, temp);
     interrupt(0x21, 0x00, "[", 0, 0); interrupt(0x21, 0x00, temp, 0, 0); interrupt(0x21, 0x00, "] ", 0, 0);
@@ -118,9 +122,9 @@ void shellLoop() {
         interrupt(0x21, (parentIndex << 8) + 0x06, command + 2, 0x2000, resultPointer);
       }
       /*** EXEC END ***/
-    } else if (stringStartsWith(command, "cat")) {
+    } else if (stringStartsWith(command, "cat ")) {
       /*** CAT START ***/
-      i = 3;
+      i = 4;
       while (command[i] == ' ' && command[i] != 0x0)
         i++; // ignore whitespace
       if (command[i] == 0x0) {
@@ -134,6 +138,29 @@ void shellLoop() {
         interrupt(0x21, 0x00, "\r\n", 0, 0);
       }
       /*** CAT END ***/
+    } else if (stringStartsWith(command, "mv ")) {
+      /*** MV START ***/
+      clear(hold, SECTOR_SIZE);
+      i = 3;
+
+      if (command[i] == 0x0) {
+        interrupt(0x21, 0, "mv: no arguments passed\r\n", 0, 0);
+        continue;
+      }
+
+      cnt = 0;
+      while (command[i] != 0x0){
+        hold[cnt] = command[i];
+        i++; cnt++;
+      }
+
+      interrupt(0x21, 0x03, hold, 0x400, 0); // write args to sector 0x400
+      binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
+
+      if (findFilename(files, "mv", binIdx, IS_FILE) != -1) { // executing mv from bin
+        interrupt(0x21, (binIdx << 8) + 0x06, "mv", 0x2000, resultPointer);
+      }
+      /*** MV END ***/
     } else {
       /*** NOT FOUND ***/
       interrupt(0x21, 0x00, command, 0, 0); interrupt(0x21, 0x00, ": command not found\r\n", 0, 0);
