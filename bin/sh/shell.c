@@ -155,23 +155,23 @@ void shellLoop() {
         interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** EXEC END ***/
-    } else if (stringCmp(cmd, "cat")) {
-      /*** CAT START ***/
-      if (args[0] == 0x0) {
-        interrupt(0x21, 0x00, "cat: No input file\r\n", 0, 0);
-        continue;
-      }
-      clear(buffer, SECTOR_SIZE * 16);
-      interrupt(0x21, (parentIndex << 8) + 0x04, buffer, args, &result);
-      if (result == R_SUCCESS) {
-        interrupt(0x21, 0x00, buffer, 0, 0);
-        interrupt(0x21, 0x00, "\r\n", 0, 0);
-      } else {
-        interrupt(0x21, 0x00, "cat: ", 0, 0);
-        interrupt(0x21, 0x00, args, 0, 0);
-        interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
-      }
-      /*** CAT END ***/
+    // } else if (stringCmp(cmd, "cat")) {
+    //   /*** CAT START ***/
+    //   if (args[0] == 0x0) {
+    //     interrupt(0x21, 0x00, "cat: No input file\r\n", 0, 0);
+    //     continue;
+    //   }
+    //   clear(buffer, SECTOR_SIZE * 16);
+    //   interrupt(0x21, (parentIndex << 8) + 0x04, buffer, args, &result);
+    //   if (result == R_SUCCESS) {
+    //     interrupt(0x21, 0x00, buffer, 0, 0);
+    //     interrupt(0x21, 0x00, "\r\n", 0, 0);
+    //   } else {
+    //     interrupt(0x21, 0x00, "cat: ", 0, 0);
+    //     interrupt(0x21, 0x00, args, 0, 0);
+    //     interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
+    //   }
+    //   /*** CAT END ***/
     } else {
       binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
       if (findFilename(files, cmd, binIdx, IS_FILE) != -1 && isCommand(cmd)) {
@@ -188,7 +188,9 @@ void shellLoop() {
 
 int isCommand(char * cmd) {
   // add new command here
-  if (stringCmp(cmd, "mv")) {
+  if (stringCmp(cmd, "cat")) {
+    return 1;
+  } else if (stringCmp(cmd, "mv")) {
     return 1;
   } else {
     return 0;

@@ -28,6 +28,13 @@ void stringCpy(char * buffOut, char * buffIn) {
   buffOut[i] = 0x0;
 }
 
+void stringConcat(char * buffOut, char * buffIn1, char * buffIn2) {
+  int i = 0;
+  stringCpy(buffOut, buffIn1);
+  while (buffOut[i] != 0x0) i++;
+  stringCpy(buffOut + i, buffIn2);
+}
+
 int stringStartsWith(char * buffFull, char * buffInit) {
   int i = 0;
   while (1) {
