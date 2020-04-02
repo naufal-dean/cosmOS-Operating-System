@@ -125,10 +125,9 @@ int listFolderContent(char * folderPath) {
 			partPath[j] = folderPath[i];
 			i++; j++;
 		}
-
-		// Check if file not found
+		if (folderPath[i] == '/') i++;
+		// Check if folder not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, IS_FOLDER)) == -1) {
-			printString_intr("Folder not found\r\n");
 			return L_FOLDER_NOT_FOUND;
 		}
 	}
@@ -139,7 +138,7 @@ int listFolderContent(char * folderPath) {
 		if (files[i * FILES_LINE_SIZE] == 0x00) break;
 		// Print content if parentIdx match
 		if (PARENT(files + i * FILES_LINE_SIZE) == filesIdx) {
-			if (SECTOR(files + i * FILES_LINE_SIZE) == 0xFF) // folder
+			if (SECTOR(files + i * FILES_LINE_SIZE) != 0xFF) // file
 				printString_intr("[file]  : ");
 			else // file
 				printString_intr("[folder]: ");

@@ -5,10 +5,14 @@
 #define CUR_DIR_SECTOR 0x201
 #define PAR_IDX_SECTOR 0x202
 
+#define MAX_ARGC 20
+#define MAX_ARG_LEN 50
+
 #include "../interrupt_define.c"
 
 void setArgs(char * args);
 void getArgs(char * args);
+void getParsedArgs(char argv[MAX_ARGC][MAX_ARGV_LEN], int * argc);
 void setCurDir(char * curDir);
 void getCurDir(char * curDir);
 void setParIdx(char * parIdx);

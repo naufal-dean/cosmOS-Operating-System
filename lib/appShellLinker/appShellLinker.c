@@ -8,6 +8,23 @@ void getArgs(char * args) {
 	readSector_intr(args, ARGS_SECTOR);
 }
 
+void getParsedArgs(char argv[MAX_ARGC][MAX_ARG_LEN], int * argc) {
+	char args[512];
+	int i, j;
+	readSector_intr(args, ARGS_SECTOR);
+	(*argc) = 0; i = 0;
+	while (args[i] != 0x0) {
+		while (args[i] == ' ') i++;
+		j = 0;
+		while (args[i] != ' ' && args[i] != 0x0) {
+			argv[*argc][j] = args[i];
+			i++; j++;
+		}
+		argv[*argc][j] = 0x0;
+		if (j > 0) (*argc)++; 
+	}
+}
+
 void setCurDir(char * curDir) {
 	writeSector_intr(curDir, CUR_DIR_SECTOR);
 }

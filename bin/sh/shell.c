@@ -173,6 +173,8 @@ int isCommand(char * cmd) {
   // add new command here
   if (stringCmp(cmd, "cat")) {
     return 1;
+  } else if (stringCmp(cmd, "ls")) {
+    return 1;
   } else if (stringCmp(cmd, "mv")) {
     return 1;
   } else {
