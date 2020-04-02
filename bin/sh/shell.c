@@ -169,7 +169,7 @@ void shellLoop() {
       binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
       if (findFilename(files, cmd, binIdx, IS_FILE) != -1 && isCommand(cmd)) {
         /*** EXEC COMMAND FROM BIN ***/
-        interrupt(0x21, (binIdx << 8) + 0x06, cmd + 2, 0x2000, &result);
+        interrupt(0x21, (binIdx << 8) + 0x06, cmd, 0x2000, &result);
       } else {
         /*** NOT FOUND ***/
         interrupt(0x21, 0x00, command, 0, 0);
