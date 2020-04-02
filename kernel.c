@@ -39,7 +39,12 @@ int main() {
     printString("Populating files done\r\n");
   }
 
-  // shellLoop();
+  // Init default curentDirectory and parentIndex for shell
+  // CUR_DIR_SECTOR = 0x201
+  // PAR_IDX_SECTOR = 0x202
+  writeSector("~", 0x201);
+  writeSector("\xff", 0x202);
+  // Launch shell
   executeProgram("shell", 0x2000, success, 0x1);
 
   while (1);

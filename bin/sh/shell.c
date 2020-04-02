@@ -77,12 +77,13 @@ void shellLoop() {
   char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE];
   int i, j, parentIndex, tempParIdx, result, binIdx, cnt;
   char temp[100];
-  // read sector
+  // Read sector
   interrupt(0x21, 0x02, files, 0x101, 0);
   interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
-  // init
-  stringCpy(curDir, "~");
-  parentIndex = 0xFF;
+  // Init
+  getParIdx(&parentIndex);
+  getCurDir(curDir);
+
   while (1) {
     // read sector
     interrupt(0x21, 0x02, files, 0x101, 0);
@@ -113,6 +114,10 @@ void shellLoop() {
     }
     args[j] = 0x0;
     setArgs(args);
+
+    // Save curDir and parentIdx
+    setCurDir(curDir);
+    setParIdx(&parentIndex);
 
     // Execute cmd
     if (stringCmp(cmd, "cd")) {

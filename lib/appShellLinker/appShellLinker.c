@@ -16,16 +16,12 @@ void getCurDir(char * curDir) {
 	readSector_intr(curDir, CUR_DIR_SECTOR);
 }
 
-void setParIdx(int * parIdx) {
-	char temp[100];
-	intToStr(*parIdx, temp);
-	writeSector_intr(temp, PAR_IDX_SECTOR);
+void setParIdx(char * parIdx) {
+	writeSector_intr(parIdx, PAR_IDX_SECTOR);
 }
 
-void getParIdx(int * parIdx) {
-	char temp[100];
-	readSector_intr(temp, PAR_IDX_SECTOR);
-	*parIdx = strToInt(temp);
+void getParIdx(char * parIdx) {
+	readSector_intr(parIdx, PAR_IDX_SECTOR);
 }
 
 void backToShell() {
