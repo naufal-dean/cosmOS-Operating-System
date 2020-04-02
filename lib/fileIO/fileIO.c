@@ -2,13 +2,13 @@
 
 int readFile(char * filePath, char * buffer) {
 	int result;
-	readFile_intr(buffer, filePath, result, 0xFF);
+	readFile_intr(buffer, filePath, &result, 0xFF);
 	return result;
 }
 
 int writeFile(char * filePath, char * buffer) {
 	int result;
-	writeFile_intr(buffer, filePath, result, 0xFF);
+	writeFile_intr(buffer, filePath, &result, 0xFF);
 	return result;
 }
 

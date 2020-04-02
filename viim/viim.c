@@ -1,14 +1,28 @@
 #include "viim.h"
 
 int main() {
-	char args[SECTOR_SIZE], buffer[SECTOR_SIZE * 16];
+	char args[SECTOR_SIZE], buffer[SECTOR_SIZE * 16], filePath[SECTOR_SIZE];
+	int i;
 
+	print("Inside viim test\r\n");
+
+	// Get filePath
 	getArgs(args);
-	print("test");
+	i = 0;
+	while (args[i] != 0x0 && args[i] != ' ') {
+		filePath[i] = args[i];
+		i++;
+	}
+	filePath[i] = 0x0;
 
 
-	// readFile(filePath, buffer);
-	// editor(buffer);
+	// Pass to editor
+	if (readFile(filePath, buffer) > 0) {
+		editor(buffer);
+	} else {
+		print(filePath);
+		print(": File not found\r\n");
+	}
 	// writeFile(filePath, buffer);
 
 	backToShell();
@@ -17,7 +31,8 @@ int main() {
 
 void editor(char * buffer) {
 	int exit = 0;
-	while (!exit) {
+	print(buffer);
+	// while (!exit) {
 
-	}
+	// }
 }

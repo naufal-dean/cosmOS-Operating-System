@@ -161,7 +161,7 @@ void readFile(char *buffer, char *path, int *result, char parentIndex) {
     filesIdx = findFilename(files, partPath, locParIndex, isFolder);
     // check if not found
     if (filesIdx == -1) {
-      printString("File not found\r\n");
+      // printString("File not found\r\n");
       (*result) = R_FILE_NOT_FOUND;
       return;
     }
@@ -204,7 +204,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   		//check if folder exist. If exists, use the existing folder's idx
       if ((folderIdx = findFilename(files, temp, folderIdx, IS_FOLDER)) == -1) {
         (*result) = W_INVALID_FOLDER;
-        printString("Invalid folder\r\n");
+        // printString("Invalid folder\r\n");
         return; 
       }
 
@@ -217,7 +217,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   // validate filename
   if (findFilename(files, path + prevOffset, folderIdx, IS_FILE) != -1) {
     (*result) = W_FILE_ALREADY_EXIST;
-    printString("File already exist\r\n");
+    // printString("File already exist\r\n");
     return; 
   }
 
@@ -230,7 +230,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == SECTOR_SIZE) { //NOT FOUND, keluarkan pesan error -3
     (*result) = W_SECTOR_FULL;
-    printString("Sector full\r\n");
+    // printString("Sector full\r\n");
     return;
   }
 
@@ -247,7 +247,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == 64) { //NOT FOUND, keluarkan pesan error -2
     (*result) = W_ENTRY_FULL;
-    printString("Entry full\r\n");
+    // printString("Entry full\r\n");
     return;
   }
 
@@ -264,7 +264,7 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
 
   if (i == 32) { //NOT FOUND, keluarkan pesan error -3
     (*result) = W_SECTOR_FULL;
-    printString("Sector full\r\n");
+    // printString("Sector full\r\n");
     return;
   }
 
@@ -327,7 +327,7 @@ int writeFolder(char * folderName, int *result, char parentIndex) { // return fi
 
   if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
     (*result) = W_ENTRY_FULL;
-    printString("ret etrfull\r\n");
+    // printString("ret etrfull\r\n");
     return -1;
   }
   unusedFile = i;

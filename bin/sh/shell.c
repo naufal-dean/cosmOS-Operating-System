@@ -1,7 +1,11 @@
+#include "../../lib/math/math.h"
+#include "../../lib/string/string.h"
+#include "../../lib/appShellLinker/appShellLinker.h"
 #include "../../lib/constant.c"
 
 int cdExec(char * path, char * curDir, char * parentIndex);
 void shellLoop();
+int isCommand(char * cmd);
 
 int main() {
   shellLoop();
@@ -70,9 +74,8 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 }
 
 void shellLoop() {
-  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE];
-  char * tempParIdx; char * resultPointer;
-  int i, j, parentIndex, result, binIdx, cnt;
+  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE];
+  int i, j, parentIndex, tempParIdx, result, binIdx, cnt;
   char temp[100];
   // read sector
   interrupt(0x21, 0x02, files, 0x101, 0);
@@ -90,80 +93,184 @@ void shellLoop() {
     interrupt(0x21, 0x00, "[", 0, 0); interrupt(0x21, 0x00, temp, 0, 0); interrupt(0x21, 0x00, "] ", 0, 0);
     interrupt(0x21, 0x00, curDir, 0, 0); interrupt(0x21, 0x00, "$ ", 0, 0);
     interrupt(0x21, 0x01, command, 0, 0);
-    // execute command
-    if (stringStartsWith(command, "cd")) {
+
+    // Get cmd
+    i = 0;
+    clear(cmd, SECTOR_SIZE);
+    j = 0;
+    while (command[i] != ' ' && command[i] != 0x0) {
+      cmd[j] = command[i];
+      i++; j++;
+    }
+    // Ignore whitespace
+    while (command[i] == ' ') i++;
+    // Get args
+    clear(args, SECTOR_SIZE);
+    j = 0;
+    while (command[i] != 0x0) {
+      args[j] = command[i];
+      i++; j++;
+    }
+    args[j] = 0x0;
+    setArgs(args);
+
+    // Execute cmd
+    if (stringCmp(cmd, "cd")) {
       /*** CD START ***/
-      i = 2;
-      while (command[i] == ' ' && command[i] != 0x0)
-        i++; // ignore whitespace
-      // copy curDir
+      // copy curDir and parentIndex
       stringCpy(tempCurDir, curDir);
+      tempParIdx = parentIndex;
       // check params
-      *tempParIdx = parentIndex;
-      if (command[i] == 0x0) { // no params, cd to root
-        result = cdExec("~", tempCurDir, tempParIdx);
+      if (args[0] == 0x0) { // no params, cd to root
+        result = cdExec("~", tempCurDir, &tempParIdx);
       } else { // params available
-        result = cdExec(command + i, tempCurDir, tempParIdx);
+        result = cdExec(args, tempCurDir, &tempParIdx);
       }
       // result
       if (result) {
-        parentIndex = *tempParIdx;
+        parentIndex = tempParIdx;
         stringCpy(curDir, tempCurDir);
       } else {
-        interrupt(0x21, 0x00, "No such file or directory\r\n", 0, 0);
+        interrupt(0x21, 0x00, "cd: ", 0, 0);
+        interrupt(0x21, 0x00, args, 0, 0);
+        interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** CD END ***/
-    } else if (stringStartsWith(command, "./")) {
+    } else if (stringStartsWith(cmd, "./")) {
       /*** EXEC START ***/
       binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
-      if (findFilename(files, command + 2, binIdx, IS_FILE) != -1) {
-        interrupt(0x21, (binIdx << 8) + 0x06, command + 2, 0x2000, resultPointer);
-      } else {  // not in PATH
-        interrupt(0x21, (parentIndex << 8) + 0x06, command + 2, 0x2000, resultPointer);
+      if (findFilename(files, cmd + 2, binIdx, IS_FILE) != -1) {
+        interrupt(0x21, (binIdx << 8) + 0x06, cmd + 2, 0x2000, &result);
+      } else if (findFilename(files, cmd + 2, parentIndex, IS_FILE) != -1) {  // not in PATH
+        interrupt(0x21, (parentIndex << 8) + 0x06, cmd + 2, 0x2000, &result);
+      } else {
+        interrupt(0x21, 0x00, cmd, 0, 0);
+        interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** EXEC END ***/
-    } else if (stringStartsWith(command, "cat ")) {
+    } else if (stringCmp(cmd, "cat")) {
       /*** CAT START ***/
-      i = 4;
-      while (command[i] == ' ' && command[i] != 0x0)
-        i++; // ignore whitespace
-      if (command[i] == 0x0) {
-        interrupt(0x21, 0x00, "No input file\r\n", 0, 0);
+      if (args[0] == 0x0) {
+        interrupt(0x21, 0x00, "cat: No input file\r\n", 0, 0);
         continue;
       }
       clear(buffer, SECTOR_SIZE * 16);
-      interrupt(0x21, (parentIndex << 8) + 0x04, buffer, command + i, resultPointer);
-      if (*resultPointer == R_SUCCESS) {
+      interrupt(0x21, (parentIndex << 8) + 0x04, buffer, args, &result);
+      if (result == R_SUCCESS) {
         interrupt(0x21, 0x00, buffer, 0, 0);
         interrupt(0x21, 0x00, "\r\n", 0, 0);
+      } else {
+        interrupt(0x21, 0x00, "cat: ", 0, 0);
+        interrupt(0x21, 0x00, args, 0, 0);
+        interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** CAT END ***/
-    } else if (stringStartsWith(command, "mv ")) {
-      /*** MV START ***/
-      clear(hold, SECTOR_SIZE);
-      i = 3;
-
-      if (command[i] == 0x0) {
-        interrupt(0x21, 0, "mv: no arguments passed\r\n", 0, 0);
-        continue;
-      }
-
-      cnt = 0;
-      while (command[i] != 0x0){
-        hold[cnt] = command[i];
-        i++; cnt++;
-      }
-
-      interrupt(0x21, 0x03, hold, 0x400, 0); // write args to sector 0x400
-      binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
-
-      if (findFilename(files, "mv", binIdx, IS_FILE) != -1) { // executing mv from bin
-        interrupt(0x21, (binIdx << 8) + 0x06, "mv", 0x2000, resultPointer);
-      }
-      /*** MV END ***/
     } else {
-      /*** NOT FOUND ***/
-      interrupt(0x21, 0x00, command, 0, 0); interrupt(0x21, 0x00, ": command not found\r\n", 0, 0);
+      binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
+      if (findFilename(files, cmd, binIdx, IS_FILE) != -1 && isCommand(cmd)) {
+        /*** EXEC COMMAND FROM BIN ***/
+        interrupt(0x21, (binIdx << 8) + 0x06, cmd + 2, 0x2000, &result);
+      } else {
+        /*** NOT FOUND ***/
+        interrupt(0x21, 0x00, command, 0, 0);
+        interrupt(0x21, 0x00, ": command not found\r\n", 0, 0);
+      }
     }
   }
 }
+
+int isCommand(char * cmd) {
+  // add new command here
+  if (stringCmp(cmd, "mv")) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
+// RECYCLE BIN
+
+  //   // execute command
+  //   if (stringStartsWith(command, "cd ")) {
+  //     /*** CD START ***/
+  //     i = 2;
+  //     while (command[i] == ' ' && command[i] != 0x0)
+  //       i++; // ignore whitespace
+  //     // copy curDir
+  //     stringCpy(tempCurDir, curDir);
+  //     // check params
+  //     *tempParIdx = parentIndex;
+  //     if (command[i] == 0x0) { // no params, cd to root
+  //       result = cdExec("~", tempCurDir, tempParIdx);
+  //     } else { // params available
+  //       result = cdExec(command + i, tempCurDir, tempParIdx);
+  //     }
+  //     // result
+  //     if (result) {
+  //       parentIndex = *tempParIdx;
+  //       stringCpy(curDir, tempCurDir);
+  //     } else {
+  //       interrupt(0x21, 0x00, "No such file or directory\r\n", 0, 0);
+  //     }
+  //     /*** CD END ***/
+  //   } else if (stringStartsWith(command, "./")) {
+  //     /*** EXEC START ***/
+  //     // Exec
+  //     binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
+  //     if (findFilename(files, cmd + 2, binIdx, IS_FILE) != -1) {
+  //       interrupt(0x21, (binIdx << 8) + 0x06, cmd + 2, 0x2000, resultPointer);
+  //     } else if (findFilename(files, cmd + 2, parentIndex, IS_FILE) != -1) {  // not in PATH
+  //       interrupt(0x21, (parentIndex << 8) + 0x06, cmd + 2, 0x2000, resultPointer);
+  //     } else {
+  //       interrupt(0x21, 0x00, cmd, 0, 0);
+  //       interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
+  //     }
+  //     /*** EXEC END ***/
+  //   } else if (stringStartsWith(command, "cat ")) {
+  //     /*** CAT START ***/
+  //     i = 4;
+  //     while (command[i] == ' ' && command[i] != 0x0)
+  //       i++; // ignore whitespace
+  //     if (command[i] == 0x0) {
+  //       interrupt(0x21, 0x00, "No input file\r\n", 0, 0);
+  //       continue;
+  //     }
+  //     clear(buffer, SECTOR_SIZE * 16);
+  //     interrupt(0x21, (parentIndex << 8) + 0x04, buffer, command + i, resultPointer);
+  //     if (*resultPointer == R_SUCCESS) {
+  //       interrupt(0x21, 0x00, buffer, 0, 0);
+  //       interrupt(0x21, 0x00, "\r\n", 0, 0);
+  //     } else {
+  //       interrupt(0x21, 0x00, command + i, 0, 0);
+  //       interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
+  //     }
+  //     /*** CAT END ***/
+  //   } else if (stringStartsWith(command, "mv ")) {
+  //     /*** MV START ***/
+  //     clear(hold, SECTOR_SIZE);
+  //     i = 3;
+
+  //     if (command[i] == 0x0) {
+  //       interrupt(0x21, 0, "mv: no arguments passed\r\n", 0, 0);
+  //       continue;
+  //     }
+
+  //     cnt = 0;
+  //     while (command[i] != 0x0){
+  //       hold[cnt] = command[i];
+  //       i++; cnt++;
+  //     }
+
+  //     interrupt(0x21, 0x03, hold, 0x400, 0); // write args to sector 0x400
+  //     binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
+
+  //     if (findFilename(files, "mv", binIdx, IS_FILE) != -1) { // executing mv from bin
+  //       interrupt(0x21, (binIdx << 8) + 0x06, "mv", 0x2000, resultPointer);
+  //     }
+  //     /*** MV END ***/
+  //   } else {
+  //     /*** NOT FOUND ***/
+  //     interrupt(0x21, 0x00, command, 0, 0); interrupt(0x21, 0x00, ": command not found\r\n", 0, 0);
+  //   }
+  // }
