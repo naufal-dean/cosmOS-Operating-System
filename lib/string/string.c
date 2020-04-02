@@ -1,5 +1,4 @@
 #include "string.h"
-#include "../constant.c"
 
 void clear(char *buffer, int length) {
   int i;
