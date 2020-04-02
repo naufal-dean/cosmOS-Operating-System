@@ -13,6 +13,7 @@ void setCurDir(char * curDir);
 void getCurDir(char * curDir);
 void setParIdx(char * parIdx);
 void getParIdx(char * parIdx);
+void absPathParser(char * newAbsPath, char * absPath);
 void backToShell();
 
 #endif // APP_SHELL_LINKER_H

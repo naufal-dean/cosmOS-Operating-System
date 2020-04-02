@@ -7,13 +7,14 @@ void validateName(char * files, char * name, int pIdx, int isFolder, int * nxtPI
 
 int main(){
     // var
-    char files[SECTOR_SIZE * 2], args[SECTOR_SIZE], name[14], hold[100], rename[14], test[10], buf[3];
-    int i, j, srcLength, fIdx, parIdx, bParIdx, isFolder, *result, *nxtPIdx;
+    char files[SECTOR_SIZE * 2], args[SECTOR_SIZE], name[14], hold[100], rename[14], buffer[100];
+    int i, j, idxHold, fIdx, parIdx, bParIdx, isFolder, *result, *nxtPIdx;
 
     // read args passed by shell
     readSector_intr(files, 0x101);
 	readSector_intr(files + SECTOR_SIZE, 0x102);
-    getArgs(args);
+    getParIdx(buffer); // get current directory's index
+    getArgs(args); // get args
 
     i = 0;
     // ignore all whitespaces
@@ -30,7 +31,7 @@ int main(){
     }
 
     // parse args: source
-    parIdx = 0xFF; // get current 
+    parIdx = strToInt(buffer); // get current 
     isFolder = 0;
     while(args[i] != ' ' && args[i] != 0x0){
         j = 0; clear(hold, 100);
@@ -72,7 +73,7 @@ int main(){
     }
     
     // parse args: destination
-    parIdx = 0xFF;
+    parIdx = strToInt(buffer);
     isFolder = 0;
     while(args[i] != ' ' && args[i] != 0x0){
         j = 0; clear(hold, 100);
@@ -106,12 +107,24 @@ int main(){
         fIdx = findFilename(files, name, bParIdx, 1);
     }
 
+    idxHold = parIdx; // check if the path is subdir of src
+    while(idxHold != 0xFF){
+        if(idxHold == fIdx){ // dest is subdirectory of the source
+            interrupt(0x21, 0, "mv: destination is a subdirectory of the source\r\n");
+            backToShell();
+            return 0;
+        }
+        idxHold = PARENT(files + idxHold * FILES_LINE_SIZE);
+    }
+
     // update parent of the source to dest    
     PARENT(files + fIdx * FILES_LINE_SIZE) = parIdx;
  
     // check if rename's name exists on the dest directory
     if(findFilename(files, rename, parIdx, 1) != -1 || findFilename(files, rename, parIdx, 0) != -1){
-
+        interrupt(0x21, 0, "mv: filename already exists in destination\r\n");
+        backToShell();
+        return 0;
     }
 
     // update name

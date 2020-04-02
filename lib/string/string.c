@@ -35,6 +35,12 @@ void stringConcat(char * buffOut, char * buffIn1, char * buffIn2) {
   stringCpy(buffOut + i, buffIn2);
 }
 
+int stringLen(char * buffer) {
+  int i = 0;
+  while (buffer[i] != 0x0) i++;
+  return i;
+}
+
 int stringStartsWith(char * buffFull, char * buffInit) {
   int i = 0;
   while (1) {

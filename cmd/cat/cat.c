@@ -6,7 +6,7 @@
 #include "../../lib/constant.c"
 
 int main(){
-    char buffer[SECTOR_SIZE * 16], args[SECTOR_SIZE], curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2];
+    char buffer[SECTOR_SIZE * 16], args[SECTOR_SIZE], curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2];
     int i, parentIndex, result;
 
     // Check args
@@ -16,7 +16,7 @@ int main(){
         backToShell();
     }
 
-    // Get absolute dir
+    // Get full dir
     getCurDir(curDir);
     i = 0;
     while (curDir[i] != 0x0) i++;
@@ -25,9 +25,12 @@ int main(){
 
     stringConcat(absPath, curDir + 2, args);
 
+    // Parse full dir
+    absPathParser(newAbsPath, absPath);
+
     // Read and print
     clear(buffer, SECTOR_SIZE * 16);
-    if (readFile(absPath, buffer) == R_SUCCESS) {
+    if (readFile(newAbsPath, buffer) == R_SUCCESS) {
         print(buffer);
         print("\r\n");    
     } else {
