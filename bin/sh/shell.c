@@ -81,7 +81,8 @@ void shellLoop() {
   interrupt(0x21, 0x02, files, 0x101, 0);
   interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
   // Init
-  getParIdx(&parentIndex);
+  getParIdx(temp);
+  parentIndex = strToInt(temp);
   getCurDir(curDir);
 
   while (1) {
@@ -117,7 +118,8 @@ void shellLoop() {
 
     // Save curDir and parentIdx
     setCurDir(curDir);
-    setParIdx(&parentIndex);
+    intToStr(parentIndex, temp);
+    setParIdx(temp);
 
     // Execute cmd
     if (stringCmp(cmd, "cd")) {
