@@ -143,11 +143,6 @@ void shellLoop() {
       clear(hold, SECTOR_SIZE);
       i = 3;
 
-      if (command[i] == 0x0) {
-        interrupt(0x21, 0, "mv: no arguments passed\r\n", 0, 0);
-        continue;
-      }
-
       cnt = 0;
       while (command[i] != 0x0){
         hold[cnt] = command[i];

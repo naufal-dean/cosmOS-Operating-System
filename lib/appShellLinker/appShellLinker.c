@@ -1,11 +1,11 @@
 #include "appShellLinker.h"
 
 void setArgs(char * args) {
-	writeSector_intr(args, 0x104);
+	writeSector_intr(args, 0x400);
 }
 
 void getArgs(char * args) {
-	readSector_intr(args, 0x104);
+	readSector_intr(args, 0x400);
 }
 
 void backToShell() {
