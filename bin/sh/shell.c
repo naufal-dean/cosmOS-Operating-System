@@ -175,6 +175,8 @@ int isCommand(char * cmd) {
     return 1;
   } else if (stringCmp(cmd, "mv")) {
     return 1;
+  } else if (stringCmp(cmd, "cp")){
+    return 1;
   } else {
     return 0;
   }
