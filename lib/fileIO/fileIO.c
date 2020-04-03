@@ -14,7 +14,7 @@ int writeFile(char * filePath, char * buffer) {
 
 int deleteFile(char * filePath) {
 	char map[SECTOR_SIZE], files[SECTOR_SIZE * 2], sectors[SECTOR_SIZE], partPath[SECTOR_SIZE], cleanBuffer[SECTOR_SIZE];
-	int i, j, filesIdx, sectorsIdx, targetSector, isFolder;
+	int i, j, filesIdx, lastFilesIdx, sectorsIdx, targetSector, lastSectorsIdx, isFolder;
 	
 	// Get map, files, and sectors
 	readSector_intr(map, 0x100);
@@ -59,11 +59,46 @@ int deleteFile(char * filePath) {
 		writeSector_intr(cleanBuffer, targetSector);
 		i++;
 	}
+
 	// Clear sectors
-	clear(sectors + sectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
+	// Replace cleaned sectors line with latest sectors line if any
+	lastSectorsIdx = sectorsIdx;
+	while (sectors[lastSectorsIdx * SECTOR_LINE_SIZE] != 0x0) lastSectorsIdx++;
+	if (lastSectorsIdx > sectorsIdx) { // Found sectors line below
+		// Swap line
+		for (j = 0; j < SECTOR_LINE_SIZE; j++) {
+			sectors[sectorsIdx * SECTOR_LINE_SIZE + j] = sectors[lastSectorsIdx * SECTOR_LINE_SIZE + j];
+		}
+		clear(sectors + lastSectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
+		// Update other file's sector index that refer to the swapped sectors line
+		i = 0;
+		while (files[i * FILES_LINE_SIZE] != 0x0) {
+			if (SECTOR(files + i * FILES_LINE_SIZE) == lastSectorsIdx)
+				SECTOR(files + i * FILES_LINE_SIZE) = sectorsIdx;
+		}
+	} else { // Sector line to be cleaned is latest
+		clear(sectors + sectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
+	}
 
 	// Clear files
-	clear(files + filesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
+	// Replace cleaned files line with latest files line if any
+	lastFilesIdx = filesIdx;
+	while (files[lastFilesIdx * FILES_LINE_SIZE] != 0x0) lastFilesIdx++;
+	if (lastFilesIdx > filesIdx) { // Found files line below
+		// Swap line
+		for (j = 0; j < FILES_LINE_SIZE; j++) {
+			files[filesIdx * FILES_LINE_SIZE + j] = files[lastFilesIdx * FILES_LINE_SIZE + j];
+		}
+		clear(sectors + sectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
+		// Update other file's parent index that refer to the swapped files line
+		i = 0;
+		while (files[i * FILES_LINE_SIZE] != 0x0) {
+			if (PARENT(files + i * FILES_LINE_SIZE) == lastFilesIdx)
+				PARENT(files + i * FILES_LINE_SIZE) = filesIdx;
+		}
+	} else { // Files line to be cleaned is latest
+		clear(files + filesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
+	}
 
 	// Write back map, files, and sectors
 	writeSector_intr(map, 0x100);
