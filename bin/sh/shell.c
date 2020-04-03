@@ -86,10 +86,6 @@ void shellLoop() {
   getCurDir(curDir);
 
   while (1) {
-    // read sector
-    interrupt(0x21, 0x02, files, 0x101, 0);
-    interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
-
     clear(command, 512);
     intToStr(parentIndex, temp);
     interrupt(0x21, 0x00, "[", 0, 0); interrupt(0x21, 0x00, temp, 0, 0); interrupt(0x21, 0x00, "] ", 0, 0);

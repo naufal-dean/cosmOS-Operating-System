@@ -10,7 +10,7 @@ void validateName(char * files, char * name, int pIdx, int isFolder, int * nxtPI
 
 int main(){
     // var
-    char files[SECTOR_SIZE * 2], argv[MAX_ARGC][MAX_ARG_LEN], hold[100], buffer[100];
+    char files[SECTOR_SIZE * 2], argv[MAX_ARGC][MAX_ARG_LEN], hold[100], buffer[100], rename[100];
     char curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2], content[SECTOR_SIZE];
     int i, j, argc, fIdx, idxHold, parIdx, isFolder, *result, *nxtPIdx;
 
@@ -111,6 +111,8 @@ int main(){
         if(argv[1][i] == '/'){
             validateName(files, hold, parIdx, isFolder, nxtPIdx);
             parIdx = *nxtPIdx; i++;
+        } else {
+            stringCpy(rename, hold);
         }
     }
 
@@ -125,11 +127,11 @@ int main(){
     }
 
     // check if rename's name exists on the dest directory
-    // if(findFilename(files, rename, parIdx, 1) != -1 || findFilename(files, rename, parIdx, 0) != -1){
-    //     print("cp: filename already exists in destination\r\n");
-    //     backToShell();
-    //     return 0;
-    // }
+    if(findFilename(files, rename, parIdx, 1) != -1 || findFilename(files, rename, parIdx, 0) != -1){
+        print("cp: filename already exists in destination\r\n");
+        backToShell();
+        return 0;
+    }
 
     stringConcat(absPath, curDir + 2, argv[1]);
     absPathParser(newAbsPath, absPath);
@@ -148,10 +150,6 @@ int main(){
             return 0;
         }
     }
-
-    // write to image
-    writeSector_intr(files, 0x101);
-	writeSector_intr(files + SECTOR_SIZE, 0x102);
 
     // back to shell
     backToShell();
