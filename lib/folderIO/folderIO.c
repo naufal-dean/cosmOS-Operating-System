@@ -88,10 +88,11 @@ int deleteFolder(char * folderPath) {
 			partPath[j] = folderPath[i];
 			i++; j++;
 		}
+		if (folderPath[i] == '/') i++;
 
 		// Check if file not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, IS_FOLDER)) == -1) {
-			// printString_intr("Folder not found\r\n");
+			printString_intr("Folder not found\r\n");
 			return D_FOLDER_NOT_FOUND;
 		}
 	}

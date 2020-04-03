@@ -90,7 +90,6 @@ int deleteFile(char * filePath) {
 		for (j = 0; j < FILES_LINE_SIZE; j++) {
 			files[filesIdx * FILES_LINE_SIZE + j] = files[lastFilesIdx * FILES_LINE_SIZE + j];
 		}
-		printString_intr(files + lastFilesIdx * FILES_LINE_SIZE); printString_intr("<<\r\n");
 		clear(files + lastFilesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
 		// Update other file's parent index that refer to the swapped files line
 		i = 0;

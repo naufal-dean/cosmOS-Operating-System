@@ -6,8 +6,8 @@
 #include "../../lib/constant.c"
 
 int main(){
-    char buffer[SECTOR_SIZE * 16], curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2];
-    char argv[MAX_ARGC][MAX_ARG_LEN];
+    char curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2];
+    char argv[MAX_ARGC][MAX_ARG_LEN], listFile[LF_MAX_ROW][LF_MAX_COL];
     int i, argc, count;
 
     // Check args
@@ -30,12 +30,25 @@ int main(){
         // Parse full dir
         absPathParser(newAbsPath, absPath);
 
-        // Read and print
-        clear(buffer, SECTOR_SIZE * 16);
-        if (deleteFile(newAbsPath) != D_FILE_SUCCESS && deleteFolder(newAbsPath) != D_FOLDER_SUCCESS) {
-            print("rm: cannot remove '");
-            print(argv[count]);
-            print("': No such file or directory\r\n");
+        // Get file list, delete file/folder
+        if (listFolderContent(newAbsPath, listFile) == L_SUCCESS) { // rm folder
+            if (listFile[0][0] == 0x0) { // empty folder
+                if (deleteFolder(newAbsPath) != D_FOLDER_SUCCESS) {
+                    print("rm: cannot remove '");
+                    print(argv[count]);
+                    print("': No such file or directory\r\n");
+                }
+            } else { // non empty folder
+                print("rm: cannot remove '");
+                print(argv[count]);
+                print("': Folder is not empty\r\n");
+            }
+        } else { // rm file
+            if (deleteFile(newAbsPath) != D_FILE_SUCCESS) {
+                print("rm: cannot remove '");
+                print(argv[count]);
+                print("': No such file or directory\r\n");
+            }
         }
     }
 
