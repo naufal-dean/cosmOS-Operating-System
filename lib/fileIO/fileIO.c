@@ -42,7 +42,7 @@ int deleteFile(char * filePath) {
 
 		// Check if file not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, isFolder)) == -1) {
-			printString_intr("File not found\r\n");
+			// printString_intr("File not found\r\n");
 			return D_FILE_NOT_FOUND;
 		}
 	}
@@ -63,7 +63,7 @@ int deleteFile(char * filePath) {
 	// Clear sectors
 	// Replace cleaned sectors line with latest sectors line if any
 	lastSectorsIdx = sectorsIdx;
-	while (sectors[lastSectorsIdx * SECTOR_LINE_SIZE] != 0x0) lastSectorsIdx++;
+	while (sectors[(lastSectorsIdx + 1) * SECTOR_LINE_SIZE] != 0x0 && (lastSectorsIdx + 1) < SECTOR_MAX_COUNT) lastSectorsIdx++;
 	if (lastSectorsIdx > sectorsIdx) { // Found sectors line below
 		// Swap line
 		for (j = 0; j < SECTOR_LINE_SIZE; j++) {
@@ -84,12 +84,13 @@ int deleteFile(char * filePath) {
 	// Clear files
 	// Replace cleaned files line with latest files line if any
 	lastFilesIdx = filesIdx;
-	while (files[lastFilesIdx * FILES_LINE_SIZE] != 0x0) lastFilesIdx++;
+	while (files[(lastFilesIdx + 1) * FILES_LINE_SIZE] != 0x0 && (lastFilesIdx + 1) < FILE_MAX_COUNT) lastFilesIdx++;
 	if (lastFilesIdx > filesIdx) { // Found files line below
 		// Swap line
 		for (j = 0; j < FILES_LINE_SIZE; j++) {
 			files[filesIdx * FILES_LINE_SIZE + j] = files[lastFilesIdx * FILES_LINE_SIZE + j];
 		}
+		printString_intr(files + lastFilesIdx * FILES_LINE_SIZE); printString_intr("<<\r\n");
 		clear(files + lastFilesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
 		// Update other file's parent index that refer to the swapped files line
 		i = 0;
@@ -108,6 +109,6 @@ int deleteFile(char * filePath) {
 	writeSector_intr(files + SECTOR_SIZE, 0x102);
 	writeSector_intr(sectors, 0x103);
 
-	return D_SUCCESS;
+	return D_FILE_SUCCESS;
 }
 

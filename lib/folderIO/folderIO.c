@@ -91,7 +91,7 @@ int deleteFolder(char * folderPath) {
 
 		// Check if file not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, IS_FOLDER)) == -1) {
-			printString_intr("Folder not found\r\n");
+			// printString_intr("Folder not found\r\n");
 			return D_FOLDER_NOT_FOUND;
 		}
 	}
@@ -99,7 +99,7 @@ int deleteFolder(char * folderPath) {
 	// Clear files
 	// Replace cleaned files line with latest files line if any
 	lastFilesIdx = filesIdx;
-	while (files[lastFilesIdx * FILES_LINE_SIZE] != 0x0) lastFilesIdx++;
+	while (files[(lastFilesIdx + 1) * FILES_LINE_SIZE] != 0x0 && (lastFilesIdx + 1) < FILE_MAX_COUNT) lastFilesIdx++;
 	if (lastFilesIdx > filesIdx) { // Found files line below
 		// Swap line
 		for (j = 0; j < FILES_LINE_SIZE; j++) {
@@ -121,12 +121,12 @@ int deleteFolder(char * folderPath) {
 	writeSector_intr(files, 0x101);
 	writeSector_intr(files + SECTOR_SIZE, 0x102);
 
-	return D_SUCCESS;
+	return D_FOLDER_SUCCESS;
 }
 
-int listFolderContent(char * folderPath) {
+int listFolderContent(char * folderPath, char listFile[LF_MAX_ROW][LF_MAX_COL]) {
 	char files[SECTOR_SIZE * 2], partPath[SECTOR_SIZE], contentName[20];
-	int i, j, filesIdx,;
+	int i, j, filesIdx, count;
 	
 	// Get files
 	readSector_intr(files, 0x101);
@@ -151,25 +151,26 @@ int listFolderContent(char * folderPath) {
 	}
 
 	// Print folder content
-	i = 0;
+	i = 0; count = 0;
 	do {
 		if (files[i * FILES_LINE_SIZE] == 0x00) break;
 		// Print content if parentIdx match
 		if (PARENT(files + i * FILES_LINE_SIZE) == filesIdx) {
-			if (SECTOR(files + i * FILES_LINE_SIZE) != 0xFF) // file
-				printString_intr("[file]  : ");
-			else // file
-				printString_intr("[folder]: ");
 			j = 0;
 			while (files[i * FILES_LINE_SIZE + 2 + j] != 0x0 && j < 14) {
 				contentName[j] = files[i * FILES_LINE_SIZE + 2 + j];
 				j++;
 			}
 			contentName[j] = 0x0;
-			printString_intr(contentName); printString_intr("\r\n");
+			if (SECTOR(files + i * FILES_LINE_SIZE) != 0xFF) // file
+				stringConcat(listFile[count], "[file]  : ", contentName);
+			else // file
+				stringConcat(listFile[count], "[folder]: ", contentName);
+			count++;
 		}
 		i++;
 	} while (i < FILE_MAX_COUNT);
+	clear(listFile[count], LF_MAX_COL); // end of list
 
 	return L_SUCCESS;
 }

@@ -1,7 +1,7 @@
 #ifndef FILE_IO_H
 #define FILE_IO_H
 
-#define D_SUCCESS 1
+#define D_FILE_SUCCESS 1
 #define D_FILE_NOT_FOUND -1
 
 #include "../constant.c"

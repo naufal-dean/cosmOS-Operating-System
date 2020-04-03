@@ -6,7 +6,7 @@
 
 int main(){
     char curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2];
-    char argv[MAX_ARGC][MAX_ARG_LEN];
+    char argv[MAX_ARGC][MAX_ARG_LEN], listFile[LF_MAX_ROW][LF_MAX_COL];
     int i, argc, count;
 
     // Check args
@@ -19,9 +19,15 @@ int main(){
 
     if (argc == 0) {
         if (stringCmp(curDir, "~"))
-            listFolderContent("");
+            listFolderContent("", listFile);
         else
-            listFolderContent(curDir + 2);
+            listFolderContent(curDir + 2, listFile);
+        i = 0;
+        while (listFile[i][0] != 0x0 && i < LF_MAX_ROW) {
+            print(listFile[i]);
+            print("\r\n");
+            i++;
+        }
     } else { // argc > 0
         curDir[i] = '/';
         curDir[i + 1] = 0x0;
@@ -34,10 +40,17 @@ int main(){
                 print(argv[count]); 
                 print(":\r\n"); 
             }
-            if (listFolderContent(newAbsPath) == L_FOLDER_NOT_FOUND) {
+            if (listFolderContent(newAbsPath, listFile) == L_FOLDER_NOT_FOUND) {
                 print("ls: cannot access '");
                 print(argv[count]);
                 print("': No such file or directory\r\n");
+            } else {
+                i = 0;
+                while (listFile[i][0] != 0x0 && i < LF_MAX_ROW) {
+                    print(listFile[i]);
+                    print("\r\n");
+                    i++;
+                }
             }
             if (argc > 1 && count < argc - 1)
                 print("\r\n");
