@@ -220,7 +220,8 @@ void writeFile(char *buffer, char *path, int *result, char parentIndex) {
   }
 
   // validate filename
-  if (findFilename(files, path + prevOffset, folderIdx, IS_FILE) != -1) {
+  if (findFilename(files, path + prevOffset, folderIdx, IS_FILE) != -1 ||
+      findFilename(files, path + prevOffset, folderIdx, IS_FOLDER) != -1) {
     (*result) = W_FILE_ALREADY_EXIST;
     // printString("File already exist\r\n");
     return; 

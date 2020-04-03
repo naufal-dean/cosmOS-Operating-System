@@ -4,6 +4,10 @@ int createFolder(char * folderPath) {
 	char files[SECTOR_SIZE * 2], partPath[SECTOR_SIZE];
 	int i, j, unusedFilesIdx, prevOffset, parentIdx;
 
+	// Get files
+	readSector_intr(files, 0x101);
+	readSector_intr(files + SECTOR_SIZE, 0x102);
+
 	// Validate folder folderPath
 	clear(partPath, SECTOR_SIZE);
 	i = 0; 
@@ -15,9 +19,9 @@ int createFolder(char * folderPath) {
 				partPath[j-prevOffset] = folderPath[j];
 			}
 
-			//check if folder exist. If exists, use the existing folder's idx
+			// Check if folder exist
 			if ((parentIdx = findFilename(files, partPath, parentIdx, IS_FOLDER)) == -1) {
-				printString_intr("Invalid folder\r\n");
+				// printString_intr("Invalid folder\r\n");
 				return W_INVALID_FOLDER;
 			}
 
@@ -28,15 +32,11 @@ int createFolder(char * folderPath) {
 	}
 
 	// Validate folderPath
-	if (findFilename(files, folderPath + prevOffset, parentIdx, IS_FOLDER) != -1) {
-		printString_intr("Folder already exist\r\n");
+	if (findFilename(files, folderPath + prevOffset, parentIdx, IS_FILE) != -1 || 
+		findFilename(files, folderPath + prevOffset, parentIdx, IS_FOLDER) != -1) {
+		// printString_intr("Folder already exist\r\n");
 		return W_FILE_ALREADY_EXIST;
 	}
-
-	// Write folder
-	// Get files
-	readSector_intr(files, 0x101);
-	readSector_intr(files + SECTOR_SIZE, 0x102);
 
 	//check for empty file
 	i = 0;
@@ -45,8 +45,8 @@ int createFolder(char * folderPath) {
 		i++;
 	} while (i < FILE_MAX_COUNT);
 
-	if (i == FILE_MAX_COUNT) { //NOT FOUND, keluarkan pesan error -2
-		printString_intr("Entry full\r\n");
+	if (i == FILE_MAX_COUNT) {
+		// printString_intr("Entry full\r\n");
 		return W_ENTRY_FULL;
 	}
 	unusedFilesIdx = i;
@@ -92,7 +92,7 @@ int deleteFolder(char * folderPath) {
 
 		// Check if file not found
 		if ((filesIdx = findFilename(files, partPath, filesIdx, IS_FOLDER)) == -1) {
-			printString_intr("Folder not found\r\n");
+			// printString_intr("Folder not found\r\n");
 			return D_FOLDER_NOT_FOUND;
 		}
 	}

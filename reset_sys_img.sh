@@ -14,6 +14,8 @@ dd if=img/sectors.img of=system.img bs=512 count=1 seek=259 conv=notrunc
 ./loadFile cmd/cp/cp 0x1
 ./compile_ls.sh
 ./loadFile cmd/ls/ls 0x1
+./compile_mkdir.sh
+./loadFile cmd/mkdir/mkdir 0x1
 ./compile_mv.sh
 ./loadFile cmd/mv/mv 0x1
 ./compile_rm.sh

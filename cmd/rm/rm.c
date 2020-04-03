@@ -24,6 +24,7 @@ int main(){
     curDir[i] = '/';
     curDir[i + 1] = 0x0;
 
+    // rm
     for (count = 0; count < argc; count++) {
         stringConcat(absPath, curDir + 2, argv[count]);
 

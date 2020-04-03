@@ -169,11 +169,13 @@ int isCommand(char * cmd) {
   // add new command here
   if (stringCmp(cmd, "cat")) {
     return 1;
+  } else if (stringCmp(cmd, "cp")){
+    return 1;
   } else if (stringCmp(cmd, "ls")) {
     return 1;
-  } else if (stringCmp(cmd, "mv")) {
+  } else if (stringCmp(cmd, "mkdir")) {
     return 1;
-  } else if (stringCmp(cmd, "cp")){
+  } else if (stringCmp(cmd, "mv")) {
     return 1;
   } else if (stringCmp(cmd, "rm")){
     return 1;
@@ -181,90 +183,3 @@ int isCommand(char * cmd) {
     return 0;
   }
 }
-
-
-// RECYCLE BIN
-
-  //   // execute command
-  //   if (stringStartsWith(command, "cd ")) {
-  //     /*** CD START ***/
-  //     i = 2;
-  //     while (command[i] == ' ' && command[i] != 0x0)
-  //       i++; // ignore whitespace
-  //     // copy curDir
-  //     stringCpy(tempCurDir, curDir);
-  //     // check params
-  //     *tempParIdx = parentIndex;
-  //     if (command[i] == 0x0) { // no params, cd to root
-  //       result = cdExec("~", tempCurDir, tempParIdx);
-  //     } else { // params available
-  //       result = cdExec(command + i, tempCurDir, tempParIdx);
-  //     }
-  //     // result
-  //     if (result) {
-  //       parentIndex = *tempParIdx;
-  //       stringCpy(curDir, tempCurDir);
-  //     } else {
-  //       interrupt(0x21, 0x00, "No such file or directory\r\n", 0, 0);
-  //     }
-  //     /*** CD END ***/
-  //   } else if (stringStartsWith(command, "./")) {
-  //     /*** EXEC START ***/
-  //     // Exec
-  //     binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
-  //     if (findFilename(files, cmd + 2, binIdx, IS_FILE) != -1) {
-  //       interrupt(0x21, (binIdx << 8) + 0x06, cmd + 2, 0x2000, resultPointer);
-  //     } else if (findFilename(files, cmd + 2, parentIndex, IS_FILE) != -1) {  // not in PATH
-  //       interrupt(0x21, (parentIndex << 8) + 0x06, cmd + 2, 0x2000, resultPointer);
-  //     } else {
-  //       interrupt(0x21, 0x00, cmd, 0, 0);
-  //       interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
-  //     }
-  //     /*** EXEC END ***/
-  //   } else if (stringStartsWith(command, "cat ")) {
-  //     /*** CAT START ***/
-  //     i = 4;
-  //     while (command[i] == ' ' && command[i] != 0x0)
-  //       i++; // ignore whitespace
-  //     if (command[i] == 0x0) {
-  //       interrupt(0x21, 0x00, "No input file\r\n", 0, 0);
-  //       continue;
-  //     }
-  //     clear(buffer, SECTOR_SIZE * 16);
-  //     interrupt(0x21, (parentIndex << 8) + 0x04, buffer, command + i, resultPointer);
-  //     if (*resultPointer == R_SUCCESS) {
-  //       interrupt(0x21, 0x00, buffer, 0, 0);
-  //       interrupt(0x21, 0x00, "\r\n", 0, 0);
-  //     } else {
-  //       interrupt(0x21, 0x00, command + i, 0, 0);
-  //       interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
-  //     }
-  //     /*** CAT END ***/
-  //   } else if (stringStartsWith(command, "mv ")) {
-  //     /*** MV START ***/
-  //     clear(hold, SECTOR_SIZE);
-  //     i = 3;
-
-  //     if (command[i] == 0x0) {
-  //       interrupt(0x21, 0, "mv: no arguments passed\r\n", 0, 0);
-  //       continue;
-  //     }
-
-  //     cnt = 0;
-  //     while (command[i] != 0x0){
-  //       hold[cnt] = command[i];
-  //       i++; cnt++;
-  //     }
-
-  //     interrupt(0x21, 0x03, hold, 0x400, 0); // write args to sector 0x400
-  //     binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
-
-  //     if (findFilename(files, "mv", binIdx, IS_FILE) != -1) { // executing mv from bin
-  //       interrupt(0x21, (binIdx << 8) + 0x06, "mv", 0x2000, resultPointer);
-  //     }
-  //     /*** MV END ***/
-  //   } else {
-  //     /*** NOT FOUND ***/
-  //     interrupt(0x21, 0x00, command, 0, 0); interrupt(0x21, 0x00, ": command not found\r\n", 0, 0);
-  //   }
-  // }
