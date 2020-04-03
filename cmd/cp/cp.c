@@ -71,9 +71,9 @@ int main(){
         }
     } else { // if the src is a file, get its contents
         stringConcat(absPath, curDir + 2, argv[0]);
-        print(newAbsPath);
+        absPathParser(newAbsPath, absPath);
         if(readFile(newAbsPath, content) != R_SUCCESS){
-            print("EWWOWreadfile\r\n");
+            print("cp: failed to read file\r\n");
             backToShell();
             return 0;
         }
@@ -137,13 +137,13 @@ int main(){
     // writefile
     if(isFolder){
         if(createFolder(newAbsPath) != W_SUCCESS){
-            print("EWWOWritefold\r\n");
+            print("cp: failed to copy folder\r\n");
             backToShell();
             return 0;
         }
     } else {
        if(writeFile(newAbsPath, content) != W_SUCCESS){
-            print("EWWOWritefile\r\n");
+            print("cp: failed to copy file\r\n");
             backToShell();
             return 0;
         }
