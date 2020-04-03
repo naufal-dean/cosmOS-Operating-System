@@ -72,9 +72,10 @@ int deleteFile(char * filePath) {
 		clear(sectors + lastSectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
 		// Update other file's sector index that refer to the swapped sectors line
 		i = 0;
-		while (files[i * FILES_LINE_SIZE] != 0x0) {
+		while (files[i * FILES_LINE_SIZE] != 0x0 && i < SECTOR_MAX_COUNT) {
 			if (SECTOR(files + i * FILES_LINE_SIZE) == lastSectorsIdx)
 				SECTOR(files + i * FILES_LINE_SIZE) = sectorsIdx;
+			i++;
 		}
 	} else { // Sector line to be cleaned is latest
 		clear(sectors + sectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
@@ -89,12 +90,13 @@ int deleteFile(char * filePath) {
 		for (j = 0; j < FILES_LINE_SIZE; j++) {
 			files[filesIdx * FILES_LINE_SIZE + j] = files[lastFilesIdx * FILES_LINE_SIZE + j];
 		}
-		clear(sectors + sectorsIdx * SECTOR_LINE_SIZE, SECTOR_LINE_SIZE);
+		clear(files + lastFilesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
 		// Update other file's parent index that refer to the swapped files line
 		i = 0;
-		while (files[i * FILES_LINE_SIZE] != 0x0) {
+		while (files[i * FILES_LINE_SIZE] != 0x0 && i < FILE_MAX_COUNT) {
 			if (PARENT(files + i * FILES_LINE_SIZE) == lastFilesIdx)
 				PARENT(files + i * FILES_LINE_SIZE) = filesIdx;
+			i++;
 		}
 	} else { // Files line to be cleaned is latest
 		clear(files + filesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);

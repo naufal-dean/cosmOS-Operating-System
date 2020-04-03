@@ -7,6 +7,7 @@
 #define FILE_NAME_OFFSET 2
 #define FILE_MAX_COUNT 64
 #define SECTOR_LINE_SIZE 16
+#define SECTOR_MAX_COUNT 32
 #define DIR_LINE_SIZE 32
 /* Parent and Sector byte selector */
 #define PARENT(P) (P)[0]

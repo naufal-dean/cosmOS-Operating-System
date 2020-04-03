@@ -71,7 +71,7 @@ int createFolder(char * folderPath) {
 
 int deleteFolder(char * folderPath) {
 	char files[SECTOR_SIZE * 2], partPath[SECTOR_SIZE];
-	int i, j, filesIdx,;
+	int i, j, filesIdx, lastFilesIdx;
 	
 	// Get files
 	readSector_intr(files, 0x101);
@@ -97,7 +97,25 @@ int deleteFolder(char * folderPath) {
 	}
 
 	// Clear files
-	clear(files + filesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
+	// Replace cleaned files line with latest files line if any
+	lastFilesIdx = filesIdx;
+	while (files[lastFilesIdx * FILES_LINE_SIZE] != 0x0) lastFilesIdx++;
+	if (lastFilesIdx > filesIdx) { // Found files line below
+		// Swap line
+		for (j = 0; j < FILES_LINE_SIZE; j++) {
+			files[filesIdx * FILES_LINE_SIZE + j] = files[lastFilesIdx * FILES_LINE_SIZE + j];
+		}
+		clear(files + lastFilesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
+		// Update other file's parent index that refer to the swapped files line
+		i = 0;
+		while (files[i * FILES_LINE_SIZE] != 0x0 && i < FILE_MAX_COUNT) {
+			if (PARENT(files + i * FILES_LINE_SIZE) == lastFilesIdx)
+				PARENT(files + i * FILES_LINE_SIZE) = filesIdx;
+			i++;
+		}
+	} else { // Files line to be cleaned is latest
+		clear(files + filesIdx * FILES_LINE_SIZE, FILES_LINE_SIZE);
+	}
 
 	// Write back map, files, and sectors
 	writeSector_intr(files, 0x101);
