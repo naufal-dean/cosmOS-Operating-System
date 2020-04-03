@@ -1,30 +1,35 @@
-#include "../../lib/string/string.h"
-#include "../../lib/math/math.h"
 #include "../../lib/appShellLinker/appShellLinker.h"
+#include "../../lib/fileIO/fileIO.h"
+#include "../../lib/folderIO/folderIO.h"
+#include "../../lib/math/math.h"
+#include "../../lib/string/string.h"
+#include "../../lib/text/text.h"
 #include "../../lib/constant.c"
 
 void validateName(char * files, char * name, int pIdx, int isFolder, int * nxtPIdx);
 
 int main(){
     // var
-    char files[SECTOR_SIZE * 2], args[SECTOR_SIZE], name[14], hold[100], rename[14], buffer[100];
-    int i, j, idxHold, fIdx, parIdx, bParIdx, isFolder, *result, *nxtPIdx;
+    char files[SECTOR_SIZE * 2], argv[MAX_ARGC][MAX_ARG_LEN], hold[100], buffer[100];
+    char curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2], content[SECTOR_SIZE];
+    int i, j, argc, fIdx, idxHold, parIdx, isFolder, *result, *nxtPIdx;
 
     // read args passed by shell
     readSector_intr(files, 0x101);
 	readSector_intr(files + SECTOR_SIZE, 0x102);
-    getParIdx(buffer); // get current directory's index
-    getArgs(args); // get args
-
+    getParIdx(buffer);
+    getParsedArgs(argv, &argc);
+    
+    // Get full dir
+    getCurDir(curDir);
     i = 0;
-    // ignore all whitespaces
-    while(args[i] == ' '){
-        i++;
-    }
+    while (curDir[i] != 0x0) i++;
+    curDir[i] = '/';
+    curDir[i + 1] = 0x0;
 
     // if the argument is none
-    if(args[i] == 0x0){
-        interrupt(0x21, 0, "cp: missing file operand\r\n", 0, 0);
+    if(argc < 1){
+        print("cp: missing file operand\r\n");
         // back to shell
         backToShell();
         return 0;
@@ -32,15 +37,15 @@ int main(){
 
     // parse args: source
     parIdx = strToInt(buffer); // get current 
-    isFolder = 0;
-    while(args[i] != ' ' && args[i] != 0x0){
+    isFolder = 0; i = 0;
+    while(argv[0][i] != ' ' && argv[0][i] != 0x0){
         j = 0; clear(hold, 100);
-        while(args[i] != '/' && args[i] != ' ' & args[i] != 0x0){
-            hold[j] = args[i];
+        while(argv[0][i] != '/' && argv[0][i] != ' ' & argv[0][i] != 0x0){
+            hold[j] = argv[0][i];
             i++; j++;
         }
 
-        if(args[i] == '/'){
+        if(argv[0][i] == '/'){
             isFolder = 1;
         } else {
             if(findFilename(files, hold, parIdx, 1) != -1){
@@ -51,22 +56,33 @@ int main(){
         }
 
         validateName(files, hold, parIdx, isFolder, nxtPIdx);
-        if(args[i] == '/'){
-            parIdx = *nxtPIdx; i++;
-        }
+        parIdx = *nxtPIdx; i++;
     }
 
-    bParIdx = parIdx;
-    stringCpy(name, hold); clear(hold, 100);
-
-    // ignore all whitespaces
-    while(args[i] == ' '){
-        i++;
+    i = 0;
+    if(isFolder){ // if the src file is a folder, check if it is empty
+        while(i < 64){
+            if(PARENT(files + i * FILES_LINE_SIZE) == parIdx){  // the src folder is not empty
+                print("cp: the source folder is not empty\r\n");
+                backToShell();
+                return 0;
+            }
+            i++;
+        }
+    } else { // if the src is a file, get its contents
+        stringConcat(absPath, curDir + 2, argv[0]);
+        print(newAbsPath);
+        if(readFile(newAbsPath, content) != R_SUCCESS){
+            print("EWWOWreadfile\r\n");
+            backToShell();
+            return 0;
+        }
+        clear(absPath, SECTOR_SIZE * 2); clear(newAbsPath, SECTOR_SIZE * 2);
     }
 
     // if the argument is only one string
-    if(args[i] == 0x0){
-        interrupt(0x21, 0, "cp: missing destination file operand\r\n", 0, 0);
+    if(argv[1][0] == 0x0){
+        print("cp: missing destination file operand\r\n");
         // back to shell
         backToShell();
         return 0;
@@ -74,15 +90,15 @@ int main(){
     
     // parse args: destination
     parIdx = strToInt(buffer);
-    isFolder = 0;
-    while(args[i] != ' ' && args[i] != 0x0){
+    isFolder = 0; i = 0;
+    while(argv[1][i] != ' ' && argv[1][i] != 0x0){
         j = 0; clear(hold, 100);
-        while(args[i] != '/' && args[i] != ' ' && args[i] != 0x0){
-            hold[j] = args[i];
+        while(argv[1][i] != '/' && argv[1][i] != ' ' && argv[1][i] != 0x0){
+            hold[j] = argv[1][i];
             i++; j++;
         }
 
-        if(args[i] == '/'){
+        if(argv[1][i] == '/'){
             isFolder = 1; 
         } else {
             if(findFilename(files, hold, parIdx, 1) != -1){
@@ -92,52 +108,45 @@ int main(){
             }
         }
 
-        if(args[i] == '/'){
+        if(argv[1][i] == '/'){
             validateName(files, hold, parIdx, isFolder, nxtPIdx);
             parIdx = *nxtPIdx; i++;
-        } else {
-            stringCpy(rename, hold);
         }
-    }
-
-    // finding idx of the file target
-    if(findFilename(files, name, bParIdx, 0) != -1){
-        fIdx = findFilename(files, name, bParIdx, 0);
-    } else {
-        fIdx = findFilename(files, name, bParIdx, 1);
     }
 
     idxHold = parIdx; // check if the path is subdir of src
     while(idxHold != 0xFF){
         if(idxHold == fIdx){ // dest is subdirectory of the source
-            interrupt(0x21, 0, "cp: destination is a subdirectory of the source\r\n");
+            print("cp: destination is a subdirectory of the source\r\n");
             backToShell();
             return 0;
         }
         idxHold = PARENT(files + idxHold * FILES_LINE_SIZE);
     }
 
-    // update parent of the source to dest    
-    PARENT(files + fIdx * FILES_LINE_SIZE) = parIdx;
- 
     // check if rename's name exists on the dest directory
-    if(findFilename(files, rename, parIdx, 1) != -1 || findFilename(files, rename, parIdx, 0) != -1){
-        interrupt(0x21, 0, "cp: filename already exists in destination\r\n");
-        backToShell();
-        return 0;
-    }
+    // if(findFilename(files, rename, parIdx, 1) != -1 || findFilename(files, rename, parIdx, 0) != -1){
+    //     print("cp: filename already exists in destination\r\n");
+    //     backToShell();
+    //     return 0;
+    // }
 
-    // update name
-    i = 2;
-    while(i <= 13){ // clear name
-        (files + fIdx * FILES_LINE_SIZE)[i] = 0x0;
-        i++;
-    }
+    stringConcat(absPath, curDir + 2, argv[1]);
+    absPathParser(newAbsPath, absPath);
 
-    i = 2;
-    while(rename[i-2] != 0x0){ // set name
-        (files + fIdx * FILES_LINE_SIZE)[i] = rename[i-2];
-        i++;
+    // writefile
+    if(isFolder){
+        if(createFolder(newAbsPath) != W_SUCCESS){
+            print("EWWOWritefold\r\n");
+            backToShell();
+            return 0;
+        }
+    } else {
+       if(writeFile(newAbsPath, content) != W_SUCCESS){
+            print("EWWOWritefile\r\n");
+            backToShell();
+            return 0;
+        }
     }
 
     // write to image
@@ -158,9 +167,8 @@ void validateName(char * files, char * name, int pIdx, int isFolder, int * nxtPI
     }
 
     if(cnt > 14){ // file/folder name error: exceeding 14 chars
-        interrupt(0x21, 0, "cp: ", 0, 0);
-        interrupt(0x21, 0, name, 0, 0);
-        interrupt(0x21, 0, " does not exist. (Must be 14 characters or lower)\r\n", 0, 0);
+        print("cp: "); print(name);
+        print(" does not exist. (Must be 14 characters or lower)\r\n");
         return;
     }
 
@@ -179,12 +187,11 @@ void validateName(char * files, char * name, int pIdx, int isFolder, int * nxtPI
         }
     } else { // file/folder doesn't exist
         if(isFolder){
-            interrupt(0x21, 0, "cp: folder named '", 0, 0);
+            print("cp: folder named '");
         } else {
-            interrupt(0x21, 0, "cp: file/folder named '", 0, 0);
+            print("cp: file/folder named '");
         }
-        interrupt(0x21, 0, name, 0, 0);
-        interrupt(0x21, 0, "' does not exist\r\n");
+        print(name); print("' does not exist\r\n");
         // back to shell
         backToShell();
         return;
