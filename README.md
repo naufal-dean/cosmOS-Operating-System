@@ -31,34 +31,34 @@ These are the commands supported for the CosmOS's shell
 ### cat
 Print file's contents on standard output <br>
 usage: <br>
-```cat [FILE]``` <br>
+```cat [FILE]``` 
 
 ### cd
 Change the shell working directory to target directory <br>
 usage: <br>
-```cd [TARGET DIRECTORY]``` <br>
+```cd [TARGET DIRECTORY]``` 
 
 ### cp
 Copy files and directories to target path <br>
 usage: <br>
-```cp [FILE] [TARGET PATH]``` <br>
+```cp [FILE] [TARGET PATH]``` 
 
 ### ls
 Lists information about the `FILE`s (in the current directory by default). <br>
 usage: <br>
-```ls [FILE]``` <br>
+```ls [FILE]```
 
 ### mkdir
 Create folder in the specified path <br>
 usage: <br>
-```mkdir [TARGET PATH]``` <br>
+```mkdir [TARGET PATH]```
 
 ### mv
 Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY <br>
 usage: <br>
-```mv [SOURCE] [DEST]``` <br><br>
+```mv [SOURCE] [DEST]```
 
 ### rm
 Removes each specified file/directory. It does not remove non-empty directories <br>
 usage: <br>
-```rm [FILE]``` <br><br>
+```rm [FILE]```
