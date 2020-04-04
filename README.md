@@ -29,36 +29,43 @@ Kelompok 5 / K03:
 These are the commands supported for the CosmOS's shell
 
 ### cat
-Print file's contents on standard output <br>
-usage: <br>
-```cat [FILE]``` 
+Print file's contents on standard output
+```
+$ cat [FILE]
+``` 
 
 ### cd
-Change the shell working directory to target directory <br>
-usage: <br>
-```cd [TARGET DIRECTORY]``` 
+Change the shell working directory to target directory
+```
+$ cd [TARGET DIRECTORY]
+``` 
 
 ### cp
-Copy files and directories to target path <br>
-usage: <br>
-```cp [FILE] [TARGET PATH]``` 
+Copy files and directories to target path
+```
+$ cp [FILE] [TARGET PATH]
+``` 
 
 ### ls
-Lists information about the `FILE`s (in the current directory by default). <br>
-usage: <br>
-```ls [FILE]```
+Lists information about the `FILE`s (in the current directory by default).
+```
+$ ls [FILE]
+```
 
 ### mkdir
-Create folder in the specified path <br>
-usage: <br>
-```mkdir [TARGET PATH]```
+Create folder in the specified path
+```
+$ mkdir [TARGET PATH]
+```
 
 ### mv
-Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY <br>
-usage: <br>
-```mv [SOURCE] [DEST]```
+Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY
+```
+$ mv [SOURCE] [DEST]
+```
 
 ### rm
-Removes each specified file/directory. It does not remove non-empty directories <br>
-usage: <br>
-```rm [FILE]```
+Removes each specified file/directory. It does not remove non-empty directories
+```
+$ rm [FILE]
+```
