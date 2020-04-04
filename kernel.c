@@ -20,7 +20,7 @@ int main() {
   int * sectors;
   int * success;
   int idx;
-  char files[1024];
+  char files[1024], histSector[SECTOR_SIZE];
   readSector(files, 0x101);
   readSector(files + SECTOR_SIZE, 0x102);
   (*sectors) = 1;
@@ -44,6 +44,10 @@ int main() {
   // PAR_IDX_SECTOR = 0x202
   writeSector("~", 0x201);
   writeSector("255", 0x202);
+  // Clear shell history
+  readSector(histSector, HISTORY_SECTOR);
+  clear(histSector, SECTOR_SIZE);
+  writeSector(histSector, HISTORY_SECTOR);
   // Launch shell
   executeProgram("shell", 0x2000, success, 0x1);
 
@@ -422,7 +426,7 @@ int writeFolder(char * folderName, int *result, char parentIndex) { // return fi
 
 void executeProgram(char *filename, int segment, int *success, char parentIndex) {
   int maximum_size = 16 * SECTOR_SIZE;
-  char buffer[16 * SECTOR_SIZE], histSector[SECTOR_SIZE];
+  char buffer[16 * SECTOR_SIZE];
   int i;
 
   readFile(buffer, filename, success, parentIndex);
@@ -434,11 +438,6 @@ void executeProgram(char *filename, int segment, int *success, char parentIndex)
   for (i = 0; i < maximum_size; i++) {
     putInMemory(segment, i, buffer[i]);
   }
-
-  // Write program name as history metadata
-  readSector(histSector, HISTORY_SECTOR);
-  stringCpy(histSector + HIST_METADATA_OFFSET, filename);
-  writeSector(histSector, HISTORY_SECTOR);
 
   // Launch program
   launchProgram(segment);

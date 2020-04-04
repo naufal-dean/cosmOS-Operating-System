@@ -75,7 +75,7 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 }
 
 void shellLoop() {
-  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE];
+  char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE], histSector[SECTOR_SIZE];
   int i, j, parentIndex, tempParIdx, result, binIdx, cnt;
   char temp[100];
   // Read sector
@@ -91,7 +91,17 @@ void shellLoop() {
     intToStr(parentIndex, temp);
     interrupt(0x21, 0x00, "[", 0, 0); interrupt(0x21, 0x00, temp, 0, 0); interrupt(0x21, 0x00, "] ", 0, 0);
     interrupt(0x21, 0x00, curDir, 0, 0); interrupt(0x21, 0x00, "$ ", 0, 0);
+    
+    // Remove shell flag
+    interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
+    stringCpy(histSector + HIST_METADATA_OFFSET, "shell");
+    interrupt(0x21, 0x03, histSector, HISTORY_SECTOR, 0);
+    // Input command
     interrupt(0x21, 0x01, command, 0, 0);
+    // Remove shell flag
+    interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
+    stringCpy(histSector + HIST_METADATA_OFFSET, "");
+    interrupt(0x21, 0x03, histSector, HISTORY_SECTOR, 0);
 
     // Get cmd
     i = 0;
