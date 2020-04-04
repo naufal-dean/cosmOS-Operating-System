@@ -97,8 +97,8 @@ void printString(char *string) {
 }
 
 void readString(char *string) {
-  char histSector[SECTOR_SIZE];
-  int count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
+  char histSector[SECTOR_SIZE], files[SECTOR_SIZE * 2];
+  int i, j, lastWordIdx, count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
   int cKarakter = 0;
   char AH = 0, AL = 0; char temp[100];
   // ascii list
@@ -106,8 +106,12 @@ void readString(char *string) {
   int lf = 10;
   int backspace = 8;
   int null = 0;
+  int tab = 9;
   // arrow AH key
   int upArr = 0x48, downArr = 0x50;
+  // get files
+  readSector(files, 0x101);
+  readSector(files + SECTOR_SIZE, 0x102);
   // get history
   readSector(histSector, HISTORY_SECTOR);
   while (histSector[HIST_CONTENT_OFFSET + maxHistIdxPlusOne * HIST_CONTENT_LINE_SIZE] != 0x0 && maxHistIdxPlusOne < 3) maxHistIdxPlusOne++;
@@ -169,7 +173,42 @@ void readString(char *string) {
       }
       continue;
     }
-    // Normal input
+
+    // shell autocomplete
+    if ((histSector[HIST_METADATA_OFFSET + 0] == 's') &&
+        (histSector[HIST_METADATA_OFFSET + 1] == 'h') &&
+        (histSector[HIST_METADATA_OFFSET + 2] == 'e') &&
+        (histSector[HIST_METADATA_OFFSET + 3] == 'l') &&
+        (histSector[HIST_METADATA_OFFSET + 4] == 'l') &&
+        (histSector[HIST_METADATA_OFFSET + 5] == 0x0) &&
+        (AL == tab)) {
+
+      // get last word
+      i = lastWordIdx = 0;
+      while (string[i] != 0x0) {
+        if (string[i] == ' ') lastWordIdx = i + 1;
+        i++;
+      }
+
+      // check possible autocomplete
+      i = 0;
+      while (files[i * FILES_LINE_SIZE] != 0x0 && i < FILE_MAX_COUNT) {
+        if (stringStartsWith(files + i * FILES_LINE_SIZE + 2, string + lastWordIdx)) {
+          j = stringLen(string + lastWordIdx);
+          while (files[i * FILES_LINE_SIZE + 2 + j] != 0x0 && j < 14) {
+            // complete file/folder name
+            string[count] = files[i * FILES_LINE_SIZE + 2 + j];
+            interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
+            count++; j++;
+          }
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // normal input
     if (AL == cr) {
       string[count] = null;
       string[count + 1] = cr;
