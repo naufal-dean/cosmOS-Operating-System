@@ -23,5 +23,10 @@
 /* Folder and file flag */
 #define IS_FOLDER 1
 #define IS_FILE 0
+/* History handler */
+#define HISTORY_SECTOR 0x203
+#define HIST_METADATA_OFFSET 0
+#define HIST_CONTENT_OFFSET 100
+#define HIST_CONTENT_LINE_SIZE 125
 
 #endif // CONSTANT

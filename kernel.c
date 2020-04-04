@@ -93,17 +93,69 @@ void printString(char *string) {
 }
 
 void readString(char *string) {
-  int count = 0;
+  char histSector[SECTOR_SIZE];
+  int count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
   int cKarakter = 0;
+  char AH = 0, AL = 0;
   // ascii list
   int cr = 13;
   int lf = 10;
   int backspace = 8;
   int null = 0;
+  // arrow AH key
+  int upArr = 0x48, downArr = 0x50;
+  // get history
+  readSector(histSector, HISTORY_SECTOR);
+  while (histSector[HIST_CONTENT_OFFSET + maxHistIdxPlusOne * HIST_CONTENT_LINE_SIZE] != 0x0 && maxHistIdxPlusOne < 3) maxHistIdxPlusOne++;
+  histIdx = maxHistIdxPlusOne;
+  // read input
   while (1) {
     // get char
     cKarakter = interrupt(0x16, 0, 0, 0, 0);
-    if (cKarakter == cr) {
+    AH = (char) (cKarakter >> 8);
+    AL = (char) cKarakter;
+
+    // check arrow input
+    if (AH == upArr || AH == downArr) {
+      if (AH == upArr && histIdx - 1 > -1) {
+        // decrement idx
+        histIdx--;
+        // delete active char
+        while (count > 0) {
+          string[count] = null;
+          count--;
+          interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
+          interrupt(0x10, 0xe*256+null, 0, 0, 0);
+          interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
+        }
+        // add char from history
+        while (histSector[HIST_CONTENT_OFFSET + histIdx * HIST_CONTENT_LINE_SIZE + count] != 0X0 && count < HIST_CONTENT_LINE_SIZE) {
+          string[count] = histSector[HIST_CONTENT_OFFSET + histIdx * HIST_CONTENT_LINE_SIZE + count];
+          interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
+          count++;
+        }
+      } else if (AH == downArr && histIdx + 1 < maxHistIdxPlusOne) {
+        // increment idx
+        histIdx++;
+        // delete active char
+        while (count > 0) {
+          string[count] = null;
+          count--;
+          interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
+          interrupt(0x10, 0xe*256+null, 0, 0, 0);
+          interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
+        }
+        // add char from history
+        while (histSector[HIST_CONTENT_OFFSET + histIdx * HIST_CONTENT_LINE_SIZE + count] != 0X0 && count < HIST_CONTENT_LINE_SIZE) {
+          string[count] = histSector[HIST_CONTENT_OFFSET + histIdx * HIST_CONTENT_LINE_SIZE + count];
+          interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
+          count++;
+        }
+      }
+      continue;
+    }
+    // Normal input
+    if (AL == cr) {
       string[count] = null;
       string[count + 1] = cr;
       string[count + 2] = lf;
@@ -112,7 +164,7 @@ void readString(char *string) {
       return;
 
     //suport backspacing
-    } else if (cKarakter == backspace) {
+    } else if (AL == backspace) {
       if (count > 0) {
         string[count] = null;
         count--;
@@ -121,9 +173,9 @@ void readString(char *string) {
         interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
       }
     } else {
-      string[count] = cKarakter;
+      string[count] = AL;
       count++;
-      interrupt(0x10, 0xe*256+cKarakter, 0, 0, 0);
+      interrupt(0x10, 0xe*256+AL, 0, 0, 0);
     }
   }
 }
@@ -358,8 +410,8 @@ int writeFolder(char * folderName, int *result, char parentIndex) { // return fi
 }
 
 void executeProgram(char *filename, int segment, int *success, char parentIndex) {
-  int maximum_size = 16 * 512;
-  char buffer[16 * 512];
+  int maximum_size = 16 * SECTOR_SIZE;
+  char buffer[16 * SECTOR_SIZE], histSector[SECTOR_SIZE];
   int i;
 
   readFile(buffer, filename, success, parentIndex);
@@ -372,6 +424,12 @@ void executeProgram(char *filename, int segment, int *success, char parentIndex)
     putInMemory(segment, i, buffer[i]);
   }
 
+  // Write program name as history metadata
+  readSector(histSector, HISTORY_SECTOR);
+  stringCpy(histSector + HIST_METADATA_OFFSET, filename);
+  writeSector(histSector, HISTORY_SECTOR);
+
+  // Launch program
   launchProgram(segment);
 }
 

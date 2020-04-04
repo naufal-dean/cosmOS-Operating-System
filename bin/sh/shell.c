@@ -6,6 +6,8 @@
 int cdExec(char * path, char * curDir, char * parentIndex);
 void shellLoop();
 int isCommand(char * cmd);
+void pushHistory(char * hist);
+void popHistory(char * hist);
 
 int main() {
   shellLoop();
@@ -76,7 +78,7 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 void shellLoop() {
   char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE];
   int i, j, parentIndex, tempParIdx, result, binIdx, cnt;
-  char temp[100];
+  char temp[100], histSector[SECTOR_SIZE];
   // Read sector
   interrupt(0x21, 0x02, files, 0x101, 0);
   interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
@@ -117,6 +119,11 @@ void shellLoop() {
     intToStr(parentIndex, temp);
     setParIdx(temp);
 
+    // Push command history
+    interrupt(0x21, 0x00, "Push\r\n", 0, 0);
+    pushHistory(command);
+    interrupt(0x21, 0x00, "Pushend\r\n", 0, 0);
+
     // Execute cmd
     if (stringCmp(cmd, "cd")) {
       /*** CD START ***/
@@ -151,6 +158,12 @@ void shellLoop() {
         interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** EXEC END ***/
+    } else if (stringCmp(cmd, "debug")) {
+      interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
+      interrupt(0x21, 0x00, "Meta   :", 0, 0); interrupt(0x21, 0x00, histSector, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
+      interrupt(0x21, 0x00, "H1     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
+      interrupt(0x21, 0x00, "H2     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET + HIST_CONTENT_LINE_SIZE, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
+      interrupt(0x21, 0x00, "H3     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET + HIST_CONTENT_LINE_SIZE * 2, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
     } else {
       binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
       if (findFilename(files, cmd, binIdx, IS_FILE) != -1 && isCommand(cmd)) {
@@ -182,4 +195,37 @@ int isCommand(char * cmd) {
   } else {
     return 0;
   }
+}
+
+void pushHistory(char * newHist) {
+  int i, j, count;
+  char histSector[SECTOR_SIZE];
+
+  // Read history sector
+  interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
+  
+  // Write history
+  count = 0;
+  while (histSector[HIST_CONTENT_OFFSET + count * HIST_CONTENT_LINE_SIZE] != 0x0 && count < 3) count++;
+  if (count == 3) { // already exist 3 history, replacing history 1 and 2
+    for (i = 0; i < 2; i++) {
+      j = 0;
+      while (histSector[HIST_CONTENT_OFFSET + (i + 1) * HIST_CONTENT_LINE_SIZE + j] != 0x0 && j < HIST_CONTENT_LINE_SIZE - 1) {
+        histSector[HIST_CONTENT_OFFSET + i * HIST_CONTENT_LINE_SIZE + j] = histSector[HIST_CONTENT_OFFSET + (i + 1) * HIST_CONTENT_LINE_SIZE + j];
+        j++;
+        histSector[HIST_CONTENT_OFFSET + i * HIST_CONTENT_LINE_SIZE + j] = 0x0;
+      }
+    }
+    count = 2;
+  }
+  // Write new history
+  j = 0;
+  while (newHist[j] != 0x0 && j < HIST_CONTENT_LINE_SIZE - 1) {
+    histSector[HIST_CONTENT_OFFSET + count * HIST_CONTENT_LINE_SIZE + j] = newHist[j];
+    j++;
+  }
+  histSector[HIST_CONTENT_OFFSET + count * HIST_CONTENT_LINE_SIZE + j] = 0x0;
+  
+  // Write history sector
+  interrupt(0x21, 0x03, histSector, HISTORY_SECTOR, 0);
 }
