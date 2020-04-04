@@ -12,7 +12,7 @@ int main(){
     // var
     char files[SECTOR_SIZE * 2], argv[MAX_ARGC][MAX_ARG_LEN], hold[100], buffer[100], rename[100];
     char curDir[SECTOR_SIZE], absPath[SECTOR_SIZE * 2], newAbsPath[SECTOR_SIZE * 2], content[SECTOR_SIZE];
-    int i, j, argc, fIdx, idxHold, parIdx, isFolder, *result, *nxtPIdx;
+    int i, j, argc, fIdx, idxHold, parIdx, isFolder, statFolder, *result, *nxtPIdx;
 
     // read args passed by shell
     getFiles(files);
@@ -79,6 +79,8 @@ int main(){
         clear(absPath, SECTOR_SIZE * 2); clear(newAbsPath, SECTOR_SIZE * 2);
     }
 
+    statFolder = isFolder;
+
     // if the argument is only one string
     if(argv[1][0] == 0x0){
         print("cp: missing destination file operand\r\n");
@@ -103,7 +105,7 @@ int main(){
             if(findFilename(files, hold, parIdx, 1) != -1){
                 isFolder = 1;
             } else {
-                isFolder = 0;
+                isFolder = statFolder;
             }
         }
 

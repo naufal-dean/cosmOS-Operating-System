@@ -266,7 +266,7 @@ void readString(char *string) {
         interrupt(0x10, 0xe*256+null, 0, 0, 0);
         interrupt(0x10, 0xe*256+backspace, 0, 0, 0);
       }
-    } else {
+    } else if (AL != null) {
       string[count] = AL;
       count++;
       interrupt(0x10, 0xe*256+AL, 0, 0, 0);
