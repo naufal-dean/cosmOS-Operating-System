@@ -17,12 +17,18 @@ int main(){
     getParsedArgs(argv, &argc);
 
     // if the argument is none
-    if(argv[0][0] == 0x0){
+    if(argc < 0){
         print("mv: missing file operand\r\n");
         // back to shell
         backToShell();
         return 0;
+    } else if(argc > 2){
+        print("mv: too many operands\r\n");
+        // back to shell
+        backToShell();
+        return 0;
     }
+
 
     // parse args: source
     parIdx = strToInt(buffer); // get current folder idx

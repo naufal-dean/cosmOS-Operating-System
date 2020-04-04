@@ -32,6 +32,11 @@ int main(){
         // back to shell
         backToShell();
         return 0;
+    } else if(argc > 2){
+        print("cp: too many operands\r\n");
+        // back to shell
+        backToShell();
+        return 0;
     }
 
     // parse args: source
