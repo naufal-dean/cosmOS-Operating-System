@@ -15,8 +15,7 @@ int main(){
     int i, j, argc, fIdx, idxHold, parIdx, isFolder, *result, *nxtPIdx;
 
     // read args passed by shell
-    readSector_intr(files, 0x101);
-	readSector_intr(files + SECTOR_SIZE, 0x102);
+    getFiles(files);
     getParIdx(buffer);
     getParsedArgs(argv, &argc);
     

@@ -33,6 +33,16 @@ void getCurDir(char * curDir) {
 	readSector_intr(curDir, CUR_DIR_SECTOR);
 }
 
+void getFiles(char * files){
+    readSector_intr(files, FILES_SECTOR_1);
+    readSector_intr(files + 512, FILES_SECTOR_2);
+}
+
+void setFiles(char * files){
+    writeSector_intr(files, FILES_SECTOR_1);
+    writeSector_intr(files + 512, FILES_SECTOR_2);
+}
+
 void setParIdx(char * parIdx) {
 	writeSector_intr(parIdx, PAR_IDX_SECTOR);
 }

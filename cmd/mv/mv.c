@@ -12,8 +12,7 @@ int main(){
     int i, j, argc, idxHold, fIdx, parIdx, bParIdx, isFolder, *result, *nxtPIdx;
 
     // read args passed by shell
-    readSector_intr(files, 0x101);
-	readSector_intr(files + SECTOR_SIZE, 0x102);
+    getFiles(files);
     getParIdx(buffer); // get current directory's index
     getParsedArgs(argv, &argc);
 
@@ -131,8 +130,7 @@ int main(){
     }
 
     // write to image
-    writeSector_intr(files, 0x101);
-	writeSector_intr(files + SECTOR_SIZE, 0x102);
+    setFiles(files);
 
     // back to shell
     backToShell();
