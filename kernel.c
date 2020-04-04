@@ -16,7 +16,7 @@ void printLogo();
 
 
 int main() {
-  char buffer[20 * 512];
+  char buffer[20 * 512], temp[100];
   int * sectors;
   int * success;
   int idx;
@@ -96,7 +96,7 @@ void readString(char *string) {
   char histSector[SECTOR_SIZE];
   int count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
   int cKarakter = 0;
-  char AH = 0, AL = 0;
+  char AH = 0, AL = 0; char temp[100];
   // ascii list
   int cr = 13;
   int lf = 10;
@@ -108,6 +108,7 @@ void readString(char *string) {
   readSector(histSector, HISTORY_SECTOR);
   while (histSector[HIST_CONTENT_OFFSET + maxHistIdxPlusOne * HIST_CONTENT_LINE_SIZE] != 0x0 && maxHistIdxPlusOne < 3) maxHistIdxPlusOne++;
   histIdx = maxHistIdxPlusOne;
+
   // read input
   while (1) {
     // get char
@@ -116,7 +117,17 @@ void readString(char *string) {
     AL = (char) cKarakter;
 
     // check arrow input
-    if (AH == upArr || AH == downArr) {
+    if ((AH == upArr || AH == downArr)) {
+      // no history when input from other than shell
+      if ((histSector[HIST_METADATA_OFFSET + 0] != 's') ||
+          (histSector[HIST_METADATA_OFFSET + 1] != 'h') ||
+          (histSector[HIST_METADATA_OFFSET + 2] != 'e') ||
+          (histSector[HIST_METADATA_OFFSET + 3] != 'l') ||
+          (histSector[HIST_METADATA_OFFSET + 4] != 'l') ||
+          (histSector[HIST_METADATA_OFFSET + 5] != 0x0)) {
+        continue;
+      }
+
       if (AH == upArr && histIdx - 1 > -1) {
         // decrement idx
         histIdx--;

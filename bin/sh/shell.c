@@ -7,7 +7,6 @@ int cdExec(char * path, char * curDir, char * parentIndex);
 void shellLoop();
 int isCommand(char * cmd);
 void pushHistory(char * hist);
-void popHistory(char * hist);
 
 int main() {
   shellLoop();
