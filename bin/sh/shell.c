@@ -92,6 +92,11 @@ void shellLoop() {
     interrupt(0x21, 0x00, "[", 0, 0); interrupt(0x21, 0x00, temp, 0, 0); interrupt(0x21, 0x00, "] ", 0, 0);
     interrupt(0x21, 0x00, curDir, 0, 0); interrupt(0x21, 0x00, "$ ", 0, 0);
     
+    // Save curDir and parentIdx
+    setCurDir(curDir);
+    intToStr(parentIndex, temp);
+    setParIdx(temp);
+
     // Remove shell flag
     interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
     stringCpy(histSector + HIST_METADATA_OFFSET, "shell");
@@ -102,6 +107,9 @@ void shellLoop() {
     interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
     stringCpy(histSector + HIST_METADATA_OFFSET, "");
     interrupt(0x21, 0x03, histSector, HISTORY_SECTOR, 0);
+
+    // Zeroth check, empty command
+    if (command[0] == 0x0) continue;
 
     // Get cmd
     i = 0;
@@ -122,11 +130,6 @@ void shellLoop() {
     }
     args[j] = 0x0;
     setArgs(args);
-
-    // Save curDir and parentIdx
-    setCurDir(curDir);
-    intToStr(parentIndex, temp);
-    setParIdx(temp);
 
     // Push command history
     pushHistory(command);

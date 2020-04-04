@@ -97,10 +97,10 @@ void printString(char *string) {
 }
 
 void readString(char *string) {
-  char histSector[SECTOR_SIZE], files[SECTOR_SIZE * 2];
-  int i, j, lastWordIdx, count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
+  char histSector[SECTOR_SIZE], files[SECTOR_SIZE * 2], temp[SECTOR_SIZE];
+  int i, j, lastWordIdx, lastSlashIdx, stringIdxOffset, parentIndex, count = 0, histIdx = 0, maxHistIdxPlusOne = 0;
   int cKarakter = 0;
-  char AH = 0, AL = 0; char temp[100];
+  char AH = 0, AL = 0; 
   // ascii list
   int cr = 13;
   int lf = 10;
@@ -184,17 +184,42 @@ void readString(char *string) {
         (AL == tab)) {
 
       // get last word
-      i = lastWordIdx = 0;
+      i = lastWordIdx = lastSlashIdx = 0;
       while (string[i] != 0x0) {
         if (string[i] == ' ') lastWordIdx = i + 1;
+        if (string[i] == '/') lastSlashIdx = i;
         i++;
       }
 
-      // check possible autocomplete
+      // get curent parent index
+      readSector(temp, PAR_IDX_SECTOR);
+      parentIndex = strToInt(temp);
+
+      // parse path if available
       i = 0;
+      while (string[lastWordIdx + i] != 0x0 && (lastWordIdx + i) < lastSlashIdx) {
+        // ignore multiple slash
+        while (string[lastWordIdx + i] == '/') i++;
+        // parse path
+        j = 0;
+        while (string[lastWordIdx + i] != '/' && (lastWordIdx + i) < lastSlashIdx) {
+          temp[j] = string[lastWordIdx + i];
+          i++; j++;
+        }
+        temp[j] = 0;
+        // update parent index
+        if (j > 0) {
+          if ((parentIndex = findFilename(files, temp, parentIndex, IS_FOLDER)) == -1) { // no more subdir
+            continue;
+          }
+        }
+      }
+
+      // check possible autocomplete
+      i = 0; stringIdxOffset = (lastSlashIdx > lastWordIdx) ? (lastSlashIdx + 1) : (lastWordIdx);
       while (files[i * FILES_LINE_SIZE] != 0x0 && i < FILE_MAX_COUNT) {
-        if (stringStartsWith(files + i * FILES_LINE_SIZE + 2, string + lastWordIdx)) {
-          j = stringLen(string + lastWordIdx);
+        if (stringStartsWith(files + i * FILES_LINE_SIZE + 2, string + stringIdxOffset) && PARENT(files + i * FILES_LINE_SIZE) == parentIndex) {
+          j = stringLen(string + stringIdxOffset);
           while (files[i * FILES_LINE_SIZE + 2 + j] != 0x0 && j < 14) {
             // complete file/folder name
             string[count] = files[i * FILES_LINE_SIZE + 2 + j];

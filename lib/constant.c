@@ -28,5 +28,11 @@
 #define HIST_METADATA_OFFSET 0
 #define HIST_CONTENT_OFFSET 100
 #define HIST_CONTENT_LINE_SIZE 125
+/* Special sector */
+#define FILES_SECTOR_1 0x101
+#define FILES_SECTOR_2 0x102
+#define ARGS_SECTOR 0x200
+#define CUR_DIR_SECTOR 0x201
+#define PAR_IDX_SECTOR 0x202
 
 #endif // CONSTANT
