@@ -27,7 +27,10 @@ int main() {
     absPathParser(newAbsPath, absPath);
     clear(buffer, SECTOR_SIZE * 16);
     if (readFile(newAbsPath, buffer) == R_SUCCESS) {
-		editor(buffer); 
+		editor(buffer);
+        // Update file
+        deleteFile(newAbsPath);
+        writeFile(newAbsPath, buffer);
     } else {
         print("viim: ");
 		print(argv[0]);
@@ -39,9 +42,5 @@ int main() {
 }
 
 void editor(char * buffer) {
-	int exit = 0;
-	print(buffer);
-	// while (!exit) {
-
-	// }
+    inputEditable(buffer);    
 }

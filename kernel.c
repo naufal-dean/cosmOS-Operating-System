@@ -117,6 +117,18 @@ void readString(char *string) {
   while (histSector[HIST_CONTENT_OFFSET + maxHistIdxPlusOne * HIST_CONTENT_LINE_SIZE] != 0x0 && maxHistIdxPlusOne < 3) maxHistIdxPlusOne++;
   histIdx = maxHistIdxPlusOne;
 
+  // init buffer if edit flag is exist
+  if ((histSector[HIST_METADATA_OFFSET + 0] == 'e') &&
+      (histSector[HIST_METADATA_OFFSET + 1] == 'd') &&
+      (histSector[HIST_METADATA_OFFSET + 2] == 'i') &&
+      (histSector[HIST_METADATA_OFFSET + 3] == 't') &&
+      (histSector[HIST_METADATA_OFFSET + 4] == 0x0)) {
+    while (string[count] != 0x0) {
+      interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
+      count++;
+    }
+  }
+
   // read input
   while (1) {
     // get char
@@ -226,6 +238,9 @@ void readString(char *string) {
             interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
             count++; j++;
           }
+          string[count] = '/';
+          interrupt(0x10, 0xe*256+(string[count]), 0, 0, 0);
+          count++;
           break;
         }
         i++;
