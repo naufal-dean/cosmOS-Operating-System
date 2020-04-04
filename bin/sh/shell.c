@@ -78,7 +78,7 @@ int cdExec(char * path, char * curDir, char * parentIndex) {
 void shellLoop() {
   char command[512], curDir[2 * 512], tempCurDir[2 * 512], files[SECTOR_SIZE * 2], buffer[SECTOR_SIZE * 16], hold[SECTOR_SIZE], cmd[SECTOR_SIZE], args[SECTOR_SIZE];
   int i, j, parentIndex, tempParIdx, result, binIdx, cnt;
-  char temp[100], histSector[SECTOR_SIZE];
+  char temp[100];
   // Read sector
   interrupt(0x21, 0x02, files, 0x101, 0);
   interrupt(0x21, 0x02, files + SECTOR_SIZE, 0x102, 0);
@@ -120,9 +120,7 @@ void shellLoop() {
     setParIdx(temp);
 
     // Push command history
-    interrupt(0x21, 0x00, "Push\r\n", 0, 0);
     pushHistory(command);
-    interrupt(0x21, 0x00, "Pushend\r\n", 0, 0);
 
     // Execute cmd
     if (stringCmp(cmd, "cd")) {
@@ -158,12 +156,6 @@ void shellLoop() {
         interrupt(0x21, 0x00, ": No such file or directory\r\n", 0, 0);
       }
       /*** EXEC END ***/
-    } else if (stringCmp(cmd, "debug")) {
-      interrupt(0x21, 0x02, histSector, HISTORY_SECTOR, 0);
-      interrupt(0x21, 0x00, "Meta   :", 0, 0); interrupt(0x21, 0x00, histSector, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
-      interrupt(0x21, 0x00, "H1     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
-      interrupt(0x21, 0x00, "H2     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET + HIST_CONTENT_LINE_SIZE, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
-      interrupt(0x21, 0x00, "H3     :", 0, 0); interrupt(0x21, 0x00, histSector + HIST_CONTENT_OFFSET + HIST_CONTENT_LINE_SIZE * 2, 0, 0); interrupt(0x21, 0x00, "\r\n", 0, 0);
     } else {
       binIdx = findFilename(files, "bin", 0xFF, IS_FOLDER);
       if (findFilename(files, cmd, binIdx, IS_FILE) != -1 && isCommand(cmd)) {
